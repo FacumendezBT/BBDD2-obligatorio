@@ -42,6 +42,7 @@ CREATE TABLE `Ciudadano` (
   `nombre_completo` VARCHAR(255),
   `direccion_circuito` VARCHAR(255),
   `nro_circuito` VARCHAR(20),
+  `password_hash` VARCHAR(255),
   FOREIGN KEY (`direccion_circuito`, `nro_circuito`) REFERENCES `Circuito`(`direccion_establecimiento`, `nro`)
 );
 
