@@ -7,11 +7,10 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
-// Import configurations and utilities
-const { dbConfig } = require('./config/database');
+const { testConnection } = require('./config/database');
 const { appLogger } = require('./config/logger');
 
-// Import routes
+// Importar rutas
 const authRoutes = require('./routes/auth-routes');
 const circuitosRoutes = require('./routes/circuitos-routes');
 // const electionRoutes = require('./routes/election-routes');
@@ -20,25 +19,25 @@ const circuitosRoutes = require('./routes/circuitos-routes');
 // const circuitRoutes = require('./routes/circuit-routes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
-// Security middleware
+// Seguridad
 app.use(helmet());
 app.use(compression());
 
-// CORS configuration
+// CORS
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   })
 );
 
-// Rate limiting
+// Limitador de peticiones
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
@@ -46,12 +45,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Body parsing middleware
+// Middlewares básicos
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Logging middleware
+// Logger HTTP
 app.use(
   morgan('combined', {
     stream: {
@@ -60,7 +59,7 @@ app.use(
   })
 );
 
-// Health check endpoint
+// Ruta de prueba de vida (healthcheck)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -69,7 +68,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
+// Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/circuitos', circuitosRoutes);
 // app.use('/api/elections', electionRoutes);
@@ -77,7 +76,7 @@ app.use('/api/circuitos', circuitosRoutes);
 // app.use('/api/reports', reportRoutes);
 // app.use('/api/circuits', circuitRoutes);
 
-// 404 handler
+// 404
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
@@ -86,9 +85,18 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  appLogger.info(`Voting service backend running on port ${PORT}`);
-  appLogger.info(`Environment: ${process.env.NODE_ENV}`);
-});
+// Conexión a la base de datos y arranque del servidor
+testConnection()
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      appLogger.info(`✅ Voting service backend running on port ${PORT}`);
+      appLogger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
+    });
+  })
+  .catch((err) => {
+    appLogger.error('⛔ No se pudo iniciar el backend porque falló la conexión a la base de datos.');
+    appLogger.error(err);
+    process.exit(1);
+  });
 
 module.exports = app;

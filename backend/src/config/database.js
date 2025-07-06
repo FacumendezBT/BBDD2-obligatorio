@@ -1,5 +1,5 @@
 const mysql = require('mysql2/promise');
-const {appLogger} = require('./logger');
+const { appLogger } = require('./logger');
 
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
@@ -12,23 +12,30 @@ const dbConfig = {
     queueLimit: 0,
 };
 
-// Create connection pool
 const pool = mysql.createPool(dbConfig);
 
-// Test database connection
-const testConnection = async () => {
-    try {
-        const connection = await pool.getConnection();
-        appLogger.info('Database connected successfully');
-        connection.release();
-        return true;
-    } catch (error) {
-        appLogger.error('Database connection failed:', error);
-        return false;
+const testConnection = async (retries = 5, delay = 3000) => {
+    while (retries > 0) {
+        try {
+            const connection = await pool.getConnection();
+            appLogger.info('✅ Conexión a la base de datos exitosa');
+            connection.release();
+            return true;
+        } catch (error) {
+            appLogger.error(`❌ Fallo al conectar a la base de datos. Reintentos restantes: ${retries - 1}`);
+            retries--;
+            if (retries === 0) {
+                appLogger.error('⛔ No se pudo conectar a la base de datos después de varios intentos:', error);
+                process.exit(1); // corta la app si no puede conectar
+            }
+            await new Promise((res) => setTimeout(res, delay));
+        }
     }
 };
 
-// Execute query with error handling
+// Llamar con retry al arrancar
+testConnection();
+
 const executeQuery = async (query, params = []) => {
     try {
         const [results] = await pool.execute(query, params);
@@ -39,18 +46,15 @@ const executeQuery = async (query, params = []) => {
     }
 };
 
-// Execute transaction
 const executeTransaction = async (queries) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        
         const results = [];
         for (const { query, params } of queries) {
             const [result] = await connection.execute(query, params);
             results.push(result);
         }
-        
         await connection.commit();
         return results;
     } catch (error) {
@@ -62,13 +66,9 @@ const executeTransaction = async (queries) => {
     }
 };
 
-// Get connection for complex operations
 const getConnection = async () => {
     return await pool.getConnection();
 };
-
-// Initialize database connection on startup
-testConnection();
 
 module.exports = {
     pool,
