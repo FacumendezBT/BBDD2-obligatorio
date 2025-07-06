@@ -3,15 +3,18 @@ const { appLogger } = require('../config/logger');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const EleccionModel = require('../models/eleccion-model');
+const CircuitosModel = require('../models/circuitos-model');
 
 class AuthController {
   // Si quiere votar hay que validar que el usuario no haya votado ya, y que exista una elección activa.
-  static async _caminoUsuarioQuiereVotar(credencial) {
+  static async _caminoUsuarioQuiereVotar(credencial, ciudadano, ip) {
+    // Primero validamos si hay elecciones en las que puede votar
     const eleccionesActivas = await EleccionModel.traerEleccionesActivas();
     if (eleccionesActivas.length === 0) {
       throw new Error('No hay elecciones activas');
     }
 
+    // Verificamos si el usuario ya votó en todas las elecciones activas
     let countYaVoto = 0;
     for (const eleccion of eleccionesActivas) {
       const yaVoto = await CiudadanoModel.yaVoto(credencial, eleccion.id);
@@ -21,6 +24,23 @@ class AuthController {
     }
     if (eleccionesActivas.length === countYaVoto) {
       throw new Error('El usuario ya votó en todas las elecciones activas');
+    }
+
+    // Verificamos si el circuito del usuario coincide con el circuito del totem para marcar observado
+    const circuitoActual = await CircuitosModel.getNroCircuitoDeTotem(ip);
+    const circuitoAsociado = await CircuitosModel.getCircutoPorCredencial(credencial);
+    if (!circuitoActual || !circuitoAsociado) {
+      throw new Error('No se pudo determinar el circuito asociado al usuario');
+    }
+    if (circuitoActual.numero !== circuitoAsociado.numero) {
+      appLogger.warn('Votando observado', {
+        credencial,
+        nombre: ciudadano.nombre_completo,
+        ip,
+        circuitoActual: circuitoActual.numero,
+        circuitoAsociado: circuitoAsociado.numero,
+      });
+      ciudadano.user_type = 'observado';
     }
   }
 
@@ -33,7 +53,7 @@ class AuthController {
         const ciudadano = await CiudadanoModel.findciudadano(credencial);
         if (!ciudadano) throw new Error('Credencial inválida');
 
-        await AuthController._caminoUsuarioQuiereVotar(credencial);
+        await AuthController._caminoUsuarioQuiereVotar(credencial, ciudadano, req.ip);
 
         userFinal = ciudadano;
       } else {

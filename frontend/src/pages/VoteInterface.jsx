@@ -1,29 +1,20 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
 import { votanteLoginSchema } from '@/zod-schemas/votantes';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loginVotante, selectAuthLoading, selectIsAuthenticated } from '@/store/auth-slice';
+import { loginVotante, selectAuthLoading } from '@/store/auth-slice';
 import { selectTotem } from '@/store/totem-slice';
 
-export default function VoterAuthPage() {
+export default function VoteInterface() {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const isLoading = useAppSelector(selectAuthLoading);
-  const isAuth = useAppSelector(selectIsAuthenticated);
   const dataCircuito = useAppSelector(selectTotem);
-
-  // Esto es lo que lleva a la pantalla de votación si ya está autenticado
-  useEffect(() => {
-    if (isAuth) {
-      navigate('/votante/votar');
-    }
-  }, [isAuth, navigate]);
 
   const {
     control,
@@ -86,8 +77,23 @@ export default function VoterAuthPage() {
   };
 
   const onSubmit = async (data) => {
-    const credencial = `${data.serie.join('')}${data.numero.join('')}`;
-    dispatch(loginVotante(credencial));
+    try {
+      const credencial = `${data.serie.join('')}${data.numero.join('')}`;
+      console.log('Credencial completa:', credencial);
+      console.log('Datos del formulario:', data);
+
+      // Usar Redux para hacer login
+      const result = dispatch(loginVotante(credencial));
+
+      if (loginVotante.fulfilled.match(result)) {
+        toast.success('¡Acceso exitoso! Bienvenido al sistema de votación.');
+      } else {
+        console.error('Error en login:', result.payload);
+      }
+    } catch (error) {
+      toast.error('Error al acceder. Verifique sus credenciales.');
+      console.error('Error:', error);
+    }
   };
 
   return (
@@ -100,7 +106,7 @@ export default function VoterAuthPage() {
               <div>
                 <img src="/corte-electoral.png" alt="Totem de votación" className="w-16 h-20 object-cover" />
                 <h3 className="uppercase text-white/65 text-lg font-semibold mt-12 mb-3 tracking-[0px] leading-relaxed">
-                  ELECCIONES ELECTRÓNICAS 2024
+                  12321321321321213 ELECTRÓNICAS 2024
                 </h3>
                 <h1 className="text-white/90 font-bold text-5xl">Acceso Votante</h1>
               </div>

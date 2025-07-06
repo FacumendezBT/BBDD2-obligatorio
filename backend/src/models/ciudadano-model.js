@@ -91,23 +91,6 @@ class CiudadanoModel {
       throw error;
     }
   }
-
-  static async getYaVoto(credencial, electionId) {
-    try {
-      const query = `
-                SELECT COUNT(*) as vote_count
-                FROM Vota v
-                WHERE v.fk_ciudadano_nro_credencial = ?
-                AND v.fk_formulam_eleccion_id = ?
-            `;
-
-      const res = await executeQuery(query, [credencial, electionId]);
-      return res[0].vote_count > 0;
-    } catch (error) {
-      mysqlLogger.error('Error verificando si el ciudadano ya votó:', error);
-      throw error;
-    }
-  }
 }
 
 module.exports = CiudadanoModel;

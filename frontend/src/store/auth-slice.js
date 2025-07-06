@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AuthService from '../services/auth-service';
 
-// Estados iniciales
 const initialState = {
   user: null,
   token: null,
@@ -118,15 +117,12 @@ const authSlice = createSlice({
   },
 });
 
-// Selectores
 export const selectAuth = (state) => state.auth;
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.loading;
 export const selectAuthError = (state) => state.auth.error;
 
-// Acciones
 export const { clearError, resetAuth } = authSlice.actions;
 
-// Reducer
 export default authSlice.reducer;

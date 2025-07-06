@@ -13,6 +13,7 @@ const { appLogger } = require('./config/logger');
 
 // Import routes
 const authRoutes = require('./routes/auth-routes');
+const circuitosRoutes = require('./routes/circuitos-routes');
 // const electionRoutes = require('./routes/election-routes');
 // const voteRoutes = require('./routes/vote-routes');
 // const reportRoutes = require('./routes/report-routes');
@@ -26,20 +27,22 @@ app.use(helmet());
 app.use(compression());
 
 // CORS configuration
-app.use(cors({
+app.use(
+  cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use(limiter);
 
@@ -49,23 +52,26 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Logging middleware
-app.use(morgan('combined', { 
-    stream: { 
-        write: (message) => appLogger.info(message.trim()) 
-    } 
-}));
+app.use(
+  morgan('combined', {
+    stream: {
+      write: (message) => appLogger.info(message.trim()),
+    },
+  })
+);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        service: 'voting-service-backend'
-    });
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    service: 'voting-service-backend',
+  });
 });
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/circuitos', circuitosRoutes);
 // app.use('/api/elections', electionRoutes);
 // app.use('/api/votes', voteRoutes);
 // app.use('/api/reports', reportRoutes);
@@ -73,16 +79,16 @@ app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found',
-        path: req.originalUrl
-    });
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.originalUrl,
+  });
 });
 
 app.listen(PORT, () => {
-    appLogger.info(`Voting service backend running on port ${PORT}`);
-    appLogger.info(`Environment: ${process.env.NODE_ENV}`);
+  appLogger.info(`Voting service backend running on port ${PORT}`);
+  appLogger.info(`Environment: ${process.env.NODE_ENV}`);
 });
 
 module.exports = app;

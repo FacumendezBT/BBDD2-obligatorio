@@ -11,7 +11,6 @@ const validacionLogin = [
 ];
 
 router.post('/login', validacionLogin, validarExpressValidator, AuthController.login);
-router.post('/login-totem', validarExpressValidator, AuthController.loginTotem);
 router.post('/logout', AuthController.logout);
 
 module.exports = router;
