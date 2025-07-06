@@ -3,6 +3,7 @@ import EleccionesService from '../services/elecciones-service';
 
 const initialState = {
   eleccionesActivas: [],
+  eleccionSeleccionada: null,
   listas: [],
   stats: null,
   loading: false,
@@ -53,8 +54,12 @@ const eleccionesSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    seleccionarEleccion: (state, action) => {
+      state.eleccionSeleccionada = action.payload;
+    },
     resetElecciones: (state) => {
       state.eleccionesActivas = [];
+      state.eleccionSeleccionada = null;
       state.listas = [];
       state.stats = null;
       state.loading = false;
@@ -123,6 +128,7 @@ const eleccionesSlice = createSlice({
 
 // Selectores
 export const selectEleccionesActivas = (state) => state.elecciones.eleccionesActivas;
+export const selectEleccionSeleccionada = (state) => state.elecciones.eleccionSeleccionada;
 export const selectListasEleccion = (state) => state.elecciones.listas;
 export const selectStatsEleccion = (state) => state.elecciones.stats;
 export const selectEleccionesLoading = (state) => state.elecciones.loading;
@@ -130,7 +136,7 @@ export const selectEleccionesError = (state) => state.elecciones.error;
 export const selectEleccionesIsInitialized = (state) => state.elecciones.isInitialized;
 
 // Acciones
-export const { clearError, resetElecciones, clearListas, clearStats } = eleccionesSlice.actions;
+export const { clearError, seleccionarEleccion, resetElecciones, clearListas, clearStats } = eleccionesSlice.actions;
 
 // Reducer
 export default eleccionesSlice.reducer;

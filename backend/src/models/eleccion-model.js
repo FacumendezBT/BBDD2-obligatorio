@@ -151,6 +151,35 @@ class EleccionModel {
     }
   }
 
+  static async getListasEleccionPresidencial(electionId, departamentoId) {
+    try {
+      const query = `
+                SELECT 
+                    l.nro_lista,
+                    l.fk_partido_id,
+                    l.fk_papeleta_id,
+                    l.fk_departamento_id,
+                    p.nombre as partido_nombre,
+                    pap.descripcion as papeleta_descripcion,
+                    d.nombre as departamento_nombre,
+                    c.nombre_completo as candidato_nombre
+                FROM Lista l
+                JOIN Partido p ON l.fk_partido_id = p.id
+                JOIN Papeleta pap ON l.fk_papeleta_id = pap.id
+                LEFT JOIN Departamento d ON l.fk_departamento_id = d.id
+                LEFT JOIN Candidato can ON l.fk_candidato_credencial = can.fk_ciudadano_nro_credencial
+                LEFT JOIN Ciudadano c ON can.fk_ciudadano_nro_credencial = c.nro_credencial
+                WHERE pap.fk_eleccion_id = ? AND (l.fk_departamento_id = ? OR l.fk_departamento_id IS NULL)
+                ORDER BY p.nombre, l.nro_lista
+            `;
+
+      return await executeQuery(query, [electionId, departamentoId]);
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo listas de la elección presidencial:', error);
+      throw error;
+    }
+  }
+
   static async getPapeletasComunesEnEleccion(electionId) {
     try {
       const query = `
@@ -189,6 +218,60 @@ class EleccionModel {
       return await this.getEleccionById(result.insertId);
     } catch (error) {
       mysqlLogger.error('Error creando elección:', error);
+      throw error;
+    }
+  }
+
+  static async getParticipantesListas(electionId) {
+    try {
+      const query = `
+                SELECT 
+                    l.fk_partido_id,
+                    l.fk_papeleta_id,
+                    l.nro_lista,
+                    pl.fk_ciudadano_nro_credencial as participante_credencial,
+                    c.nombre_completo as participante_nombre,
+                    pl.organo_candidato,
+                    lp.orden as participante_orden
+                FROM Lista l
+                JOIN Papeleta pap ON l.fk_papeleta_id = pap.id
+                JOIN Lista_ParticipanteLista lp ON l.fk_partido_id = lp.fk_lista_partido_id AND l.fk_papeleta_id = lp.fk_lista_papeleta_id
+                JOIN ParticipanteLista pl ON lp.fk_participantelista_nro_credencial = pl.fk_ciudadano_nro_credencial
+                JOIN Ciudadano c ON pl.fk_ciudadano_nro_credencial = c.nro_credencial
+                WHERE pap.fk_eleccion_id = ?
+                ORDER BY l.fk_partido_id, l.fk_papeleta_id, lp.orden
+            `;
+
+      return await executeQuery(query, [electionId]);
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo participantes de las listas:', error);
+      throw error;
+    }
+  }
+
+  static async getParticipantesListasPresidencial(electionId, departamentoId) {
+    try {
+      const query = `
+                SELECT 
+                    l.fk_partido_id,
+                    l.fk_papeleta_id,
+                    l.nro_lista,
+                    pl.fk_ciudadano_nro_credencial as participante_credencial,
+                    c.nombre_completo as participante_nombre,
+                    pl.organo_candidato,
+                    lp.orden as participante_orden
+                FROM Lista l
+                JOIN Papeleta pap ON l.fk_papeleta_id = pap.id
+                JOIN Lista_ParticipanteLista lp ON l.fk_partido_id = lp.fk_lista_partido_id AND l.fk_papeleta_id = lp.fk_lista_papeleta_id
+                JOIN ParticipanteLista pl ON lp.fk_participantelista_nro_credencial = pl.fk_ciudadano_nro_credencial
+                JOIN Ciudadano c ON pl.fk_ciudadano_nro_credencial = c.nro_credencial
+                WHERE pap.fk_eleccion_id = ? AND (l.fk_departamento_id = ? OR l.fk_departamento_id IS NULL)
+                ORDER BY l.fk_partido_id, l.fk_papeleta_id, lp.orden
+            `;
+
+      return await executeQuery(query, [electionId, departamentoId]);
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo participantes de las listas presidenciales:', error);
       throw error;
     }
   }

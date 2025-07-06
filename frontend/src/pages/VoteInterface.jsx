@@ -1,13 +1,15 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { selectIsAuthenticated } from '@/store/auth-slice';
 import { selectTotem } from '@/store/totem-slice';
+import { selectEleccionSeleccionada } from '@/store/elecciones-slice';
 import ActiveElecciones from '@/components/ActiveElecciones';
+import ListasEleccion from '@/components/ListasEleccion';
 
 export default function VoteInterface() {
-  const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const eleccionSeleccionada = useAppSelector(selectEleccionSeleccionada);
   const dataCircuito = useAppSelector(selectTotem);
 
 
@@ -22,7 +24,9 @@ export default function VoteInterface() {
                 <img src="/corte-electoral.png" alt="Corte Electoral" className="w-12 h-15 object-cover" />
                 <div>
                   <h1 className="text-white text-3xl font-bold">Sistema de Votación Electrónica</h1>
-                  <p className="text-white/70">Seleccione una elección para votar</p>
+                  <p className="text-white/70">
+                    {eleccionSeleccionada ? 'Seleccione una lista para votar' : 'Seleccione una elección para votar'}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
@@ -31,7 +35,7 @@ export default function VoteInterface() {
               </div>
             </div>
 
-            <ActiveElecciones />
+            {eleccionSeleccionada ? <ListasEleccion /> : <ActiveElecciones />}
           </div>
         </Card>
       </div>

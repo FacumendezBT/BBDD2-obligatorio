@@ -1,5 +1,6 @@
 const EleccionModel = require('../models/eleccion-model');
 const { appLogger } = require('../config/logger');
+const CircuitosModel = require('../models/circuitos-model');
 
 class EleccionController {
   static async getTotalElecciones(req, res, next) {
@@ -120,7 +121,7 @@ class EleccionController {
     }
   }
 
-  static async getListasEleccion(req, res, next) {
+  static async getPapeletasEleccion(req, res, next) {
     try {
       const { electionId } = req.params;
 
@@ -129,20 +130,33 @@ class EleccionController {
         throw new Error('Elección no encontrada');
       }
 
-      const [lists, commonPapeletas] = await Promise.all([
-        EleccionModel.getListasEleccion(electionId),
-        EleccionModel.getPapeletasComunesEnEleccion(electionId),
-      ]);
+      let papeletas;
+      
+      // Si es Presidencial o Ballotage, devolver listas, sino papeletas comunes
+      if (election.tipo === 'Presidencial') {
+        const circuitoTotem = await CircuitosModel.getNroCircuitoDeTotem(req.ip);
+        const circuitoDepto = await CircuitosModel.getInfoCircuito(circuitoTotem.direccion, circuitoTotem.numero);
+        
+        // Obtener listas y participantes por separado
+        const listas = await EleccionModel.getListasEleccionPresidencial(electionId, circuitoDepto.departamento_id);
+        const participantes = await EleccionModel.getParticipantesListasPresidencial(electionId, circuitoDepto.departamento_id);
+        
+        // Combinar listas con sus participantes
+        papeletas = EleccionController.combinarListasConParticipantes(listas, participantes);
+      } else if (election.tipo === 'Ballotage') {
+        // Obtener listas y participantes por separado
+        const listas = await EleccionModel.getListasEleccion(electionId);
+        const participantes = await EleccionModel.getParticipantesListas(electionId);
+        
+        // Combinar listas con sus participantes
+        papeletas = EleccionController.combinarListasConParticipantes(listas, participantes);
+      } else {
+        papeletas = await EleccionModel.getPapeletasComunesEnEleccion(electionId);
+      }
 
-      res.status(200).json({
-          election,
-          lists,
-          commonPapeletas,
-          listCount: lists.length,
-          commonPapeletaCount: commonPapeletas.length,
-        });
+      res.status(200).json(papeletas);
     } catch (error) {
-      appLogger.warn('Error obteniendo listas de elección', {
+      appLogger.warn('Error obteniendo papeletas de elección', {
         error: error.message,
         electionId: req.params.electionId,
         ip: req.ip,
@@ -195,9 +209,7 @@ class EleccionController {
         timestamp: new Date().toISOString(),
       });
 
-      res.status(201).json({
-          election: newElection,
-        });
+      res.status(201).json(newElection);
     } catch (error) {
       appLogger.warn('Error creando elección', {
         error: error.message,
@@ -234,26 +246,20 @@ class EleccionController {
         throw new Error('Elección no encontrada');
       }
 
-      const isActive = await EleccionModel.isEleccionActiva(electionId);
       const now = new Date();
       const startDate = new Date(election.fecha_hora_inicio);
       const endDate = new Date(election.fecha_hora_fin);
 
       let status;
       if (now < startDate) {
-        status = 'próxima';
+        status = 'futura';
       } else if (now >= startDate && now <= endDate) {
         status = 'activa';
       } else {
         status = 'finalizada';
       }
 
-      res.status(200).json({
-          election,
-          status,
-          isActive,
-          canVote: isActive,
-        });
+      res.status(200).json(status);
     } catch (error) {
       appLogger.warn('Error verificando estado de elección', {
         error: error.message,
@@ -284,14 +290,11 @@ class EleccionController {
         throw new Error('Elección no encontrada');
       }
 
-      res.status(200).json({
-          election,
-          stats: {
-            totalVotes: 0,
-            participationRate: 0,
-            lastUpdated: new Date().toISOString(),
-          },
-        });
+      // res.status(200).json({
+      //       votosTotales: 0,
+      //       participationRate: 0,
+      //       lastUpdated: new Date().toISOString(),
+      //     });
     } catch (error) {
       appLogger.warn('Error obteniendo estadísticas de elección', {
         error: error.message,
@@ -311,6 +314,34 @@ class EleccionController {
           });
       }
     }
+  }
+
+  static combinarListasConParticipantes(listas, participantes) {
+    const participantesPorLista = {};
+    
+    participantes.forEach(participante => {
+      const key = `${participante.fk_partido_id}-${participante.fk_papeleta_id}`;
+      
+      if (!participantesPorLista[key]) {
+        participantesPorLista[key] = [];
+      }
+      
+      participantesPorLista[key].push({
+        participante_credencial: participante.participante_credencial,
+        participante_nombre: participante.participante_nombre,
+        organo_candidato: participante.organo_candidato,
+        participante_orden: participante.participante_orden
+      });
+    });
+
+    return listas.map(lista => {
+      const key = `${lista.fk_partido_id}-${lista.fk_papeleta_id}`;
+      
+      return {
+        ...lista,
+        participantes: participantesPorLista[key] || []
+      };
+    });
   }
 }
 

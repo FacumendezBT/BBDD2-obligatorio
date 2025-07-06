@@ -6,7 +6,9 @@ import {
   selectEleccionesActivas,
   selectEleccionesLoading,
   selectEleccionesError,
+  seleccionarEleccion,
 } from '@/store/elecciones-slice';
+import ErrorTotem from '@/components/ErrorTotem';
 
 export default function ActiveElecciones() {
   const dispatch = useAppDispatch();
@@ -17,6 +19,10 @@ export default function ActiveElecciones() {
   useEffect(() => {
     dispatch(cargarEleccionesActivas());
   }, [dispatch]);
+
+  const handleSeleccionarEleccion = (eleccion) => {
+    dispatch(seleccionarEleccion(eleccion));
+  };
 
   if (isLoading) {
     return (
@@ -81,7 +87,10 @@ export default function ActiveElecciones() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <button 
+                  onClick={() => handleSeleccionarEleccion(eleccion)}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
                   Seleccionar Elección
                 </button>
               </div>

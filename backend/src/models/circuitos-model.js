@@ -15,7 +15,8 @@ class CircuitosModel {
           e.ciudad_paraje,
           e.zona,
           e.tipo as establecimiento_tipo,
-          d.nombre as departamento_nombre
+          d.nombre as departamento_nombre,
+          d.id as departamento_id
         FROM Circuito c
         JOIN Establecimiento e ON c.fk_establecimiento_direccion = e.direccion
         JOIN Departamento d ON e.fk_departamento_id = d.id

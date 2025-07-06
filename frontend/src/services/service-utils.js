@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { store } from '../store';
+import { selectToken } from '../store/auth-slice';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -9,6 +11,20 @@ export const apiConnector = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Interceptor para agregar el token dinámicamente a cada request
+apiConnector.interceptors.request.use(
+  (config) => {
+    const token = selectToken(store.getState());
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 apiConnector.interceptors.response.use(
   (response) => response,

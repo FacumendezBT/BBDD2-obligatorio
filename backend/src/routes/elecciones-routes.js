@@ -17,7 +17,7 @@ const validacionCrearEleccion = [
         .isLength({ min: 1, max: 255 })
         .withMessage('El nombre de la elección es requerido y debe tener menos de 255 caracteres'),
     body('tipo')
-        .isIn(['Presidencial', 'Ballotage', 'Referéndum', 'Plebiscito'])
+        .isIn(['Presidencial', 'Ballotage', 'Referendum', 'Plebiscito'])
         .withMessage('El tipo de elección debe ser uno de: Presidencial, Ballotage, Referéndum, Plebiscito'),
     body('fecha_hora_inicio')
         .isISO8601()
@@ -32,9 +32,9 @@ router.get('/activas', EleccionController.getEleccionesActivas);
 router.get('/proximas', EleccionController.getEleccionesFuturas);
 router.get('/pasadas', EleccionController.getEleccionesPasadas);
 
-router.get('/:electionId', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'ciudadano']), idEleccionValidacion, validarExpressValidator, EleccionController.getEleccionPorId);
-router.get('/:electionId/estado', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'ciudadano']), idEleccionValidacion, validarExpressValidator, EleccionController.checkEstadoEleccion);
-router.get('/:electionId/listas', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'ciudadano']), idEleccionValidacion, validarExpressValidator, EleccionController.getListasEleccion);
+router.get('/:electionId', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'votante', 'observado']), idEleccionValidacion, validarExpressValidator, EleccionController.getEleccionPorId);
+router.get('/:electionId/estado', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'votante', 'observado']), idEleccionValidacion, validarExpressValidator, EleccionController.checkEstadoEleccion);
+router.get('/:electionId/papeletas', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'votante', 'observado']), idEleccionValidacion, validarExpressValidator, EleccionController.getPapeletasEleccion);
 router.get('/:electionId/estadisticas', autenticar(['admin', 'presidente', 'secretario', 'vocal']), idEleccionValidacion, validarExpressValidator, EleccionController.getStatsEleccion);
 
 router.post('/', autenticar(['admin']), validacionCrearEleccion, validarExpressValidator, EleccionController.crearEleccion);

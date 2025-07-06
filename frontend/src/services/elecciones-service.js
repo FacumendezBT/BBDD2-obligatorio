@@ -7,7 +7,7 @@ class EleccionesService {
     }
 
     static async getListasEleccion(electionId) {
-        const response = await apiConnector.get(`/elecciones/${electionId}/listas`);
+        const response = await apiConnector.get(`/elecciones/${electionId}/papeletas`);
         return response.data;
     }
 
