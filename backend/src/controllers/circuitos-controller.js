@@ -11,11 +11,8 @@ class CircuitosController {
         throw new Error('Circuito no encontrado');
       }
       res.status(200).json({
-        success: true,
-        data: {
           circuit,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo información del circuito', {
         error: error.message,
@@ -50,13 +47,10 @@ class CircuitosController {
       const statusHistory = await CircuitosModel.getHistorialEstadoMesa(electionId, mesaNumber);
       
       res.status(200).json({
-        success: true,
-        data: {
           mesa,
           isOpen: isMesaOpen,
           statusHistory,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo información de la mesa', {
         error: error.message,
@@ -104,7 +98,6 @@ class CircuitosController {
       });
       
       res.status(200).json({
-        success: true,
         message: 'Mesa cerrada exitosamente',
       });
     } catch (error) {
@@ -139,13 +132,10 @@ class CircuitosController {
       const circuits = await CircuitosModel.getCircuitosPorDepartamento(departmentId);
       
       res.status(200).json({
-        success: true,
-        data: {
           circuits,
           count: circuits.length,
           departmentId,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo circuitos por departamento', {
         error: error.message,
@@ -178,14 +168,11 @@ class CircuitosController {
       }, {});
       
       res.status(200).json({
-        success: true,
-        data: {
           circuits,
           circuitsByDepartment,
           totalCount: circuits.length,
           departmentCount: Object.keys(circuitsByDepartment).length,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo todos los circuitos', {
         error: error.message,
@@ -214,12 +201,9 @@ class CircuitosController {
       }
       
       res.status(200).json({
-        success: true,
-        data: {
           assignedCircuit,
           electionId,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo circuito asignado al usuario', {
         error: error.message,

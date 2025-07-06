@@ -6,13 +6,7 @@ class EleccionController {
     try {
       const elections = await EleccionModel.getEleccionesHistoricas();
 
-      res.status(200).json({
-        success: true,
-        data: {
-          elections,
-          count: elections.length,
-        },
-      });
+      res.status(200).json(elections);
     } catch (error) {
       appLogger.warn('Error obteniendo todas las elecciones', {
         error: error.message,
@@ -40,11 +34,8 @@ class EleccionController {
       }
 
       res.status(200).json({
-        success: true,
-        data: {
           election,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo elección por ID', {
         error: error.message,
@@ -70,13 +61,7 @@ class EleccionController {
     try {
       const elections = await EleccionModel.traerEleccionesActivas();
 
-      res.status(200).json({
-        success: true,
-        data: {
-          elections,
-          count: elections.length,
-        },
-      });
+      res.status(200).json(elections);
     } catch (error) {
       appLogger.warn('Error obteniendo elecciones activas', {
         error: error.message,
@@ -97,13 +82,7 @@ class EleccionController {
     try {
       const elections = await EleccionModel.getFuturasElecciones();
 
-      res.status(200).json({
-        success: true,
-        data: {
-          elections,
-          count: elections.length,
-        },
-      });
+      res.status(200).json(elections);
     } catch (error) {
       appLogger.warn('Error obteniendo elecciones futuras', {
         error: error.message,
@@ -124,13 +103,7 @@ class EleccionController {
     try {
       const elections = await EleccionModel.getEleccionesPasadas();
 
-      res.status(200).json({
-        success: true,
-        data: {
-          elections,
-          count: elections.length,
-        },
-      });
+      res.status(200).json(elections);
     } catch (error) {
       appLogger.warn('Error obteniendo elecciones pasadas', {
         error: error.message,
@@ -162,15 +135,12 @@ class EleccionController {
       ]);
 
       res.status(200).json({
-        success: true,
-        data: {
           election,
           lists,
           commonPapeletas,
           listCount: lists.length,
           commonPapeletaCount: commonPapeletas.length,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo listas de elección', {
         error: error.message,
@@ -226,12 +196,8 @@ class EleccionController {
       });
 
       res.status(201).json({
-        success: true,
-        message: 'Elección creada exitosamente',
-        data: {
           election: newElection,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error creando elección', {
         error: error.message,
@@ -283,14 +249,11 @@ class EleccionController {
       }
 
       res.status(200).json({
-        success: true,
-        data: {
           election,
           status,
           isActive,
           canVote: isActive,
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error verificando estado de elección', {
         error: error.message,
@@ -322,16 +285,13 @@ class EleccionController {
       }
 
       res.status(200).json({
-        success: true,
-        data: {
           election,
           stats: {
             totalVotes: 0,
             participationRate: 0,
             lastUpdated: new Date().toISOString(),
           },
-        },
-      });
+        });
     } catch (error) {
       appLogger.warn('Error obteniendo estadísticas de elección', {
         error: error.message,

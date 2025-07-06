@@ -13,8 +13,6 @@ export function VotanteLayout({ children }) {
     return <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>;
   }
 
-  console.log('VotanteLayout - isAuth:', isAuth, 'user:', user);
-
   if (!isAuth || (user && user.tipo !== 'votante' && user.tipo !== 'observado')) {
     return <Navigate to="/votante" state={{ from: location }} replace />;
   }

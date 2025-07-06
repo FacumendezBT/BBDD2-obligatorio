@@ -6,14 +6,12 @@ const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-
-// Import configurations and utilities
-const { dbConfig } = require('./config/database');
 const { appLogger } = require('./config/logger');
 
 // Import routes
 const authRoutes = require('./routes/auth-routes');
 const circuitosRoutes = require('./routes/circuitos-routes');
+const eleccionesRoutes = require('./routes/elecciones-routes');
 // const electionRoutes = require('./routes/election-routes');
 // const voteRoutes = require('./routes/vote-routes');
 // const reportRoutes = require('./routes/report-routes');
@@ -72,6 +70,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/circuitos', circuitosRoutes);
+app.use('/api/elecciones', eleccionesRoutes);
 // app.use('/api/elections', electionRoutes);
 // app.use('/api/votes', voteRoutes);
 // app.use('/api/reports', reportRoutes);
