@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth-routes');
 const circuitosRoutes = require('./routes/circuitos-routes');
 const eleccionesRoutes = require('./routes/elecciones-routes');
 const votosRoutes = require('./routes/votos-routes');
+const reportesRoutes = require('./routes/reportes-routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -59,6 +60,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/circuitos', circuitosRoutes);
 app.use('/api/elecciones', eleccionesRoutes);
 app.use('/api/votos', votosRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 app.use('*', (req, res) => {
   res.status(404).json({

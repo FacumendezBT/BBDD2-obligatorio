@@ -303,6 +303,77 @@ class CircuitosController {
       }
     }
   }
+
+  static async getMesasUsuario(req, res, next) {
+    try {
+      const { nro_credencial } = req.user;
+      const mesas = await CircuitosModel.getMesasPorCredencial(nro_credencial);
+
+      appLogger.info('Información de mesas obtenida', {
+        nro_credencial,
+        ip: req.ip,
+        cantidadMesas: mesas.length,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: mesas,
+      });
+    } catch (error) {
+      appLogger.warn('Error obteniendo mesas del usuario', {
+        error: error.message,
+        credencial: req.user?.nro_credencial,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+      });
+    }
+  }
+
+  static async getEstadoMesa(req, res, next) {
+    const { electionId, mesaNumber } = req.params;
+    try {
+      const estadoActual = await CircuitosModel.getEstadoActualMesa(electionId, mesaNumber);
+      const historial = await CircuitosModel.getHistorialEstadoMesa(electionId, mesaNumber);
+
+      if (!estadoActual) {
+        throw new Error('Estado de mesa no encontrado');
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          estado_actual: estadoActual,
+          historial: historial,
+        },
+      });
+    } catch (error) {
+      appLogger.warn('Error obteniendo estado de mesa', {
+        error: error.message,
+        electionId,
+        mesaNumber,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      switch (error.message) {
+        case 'Estado de mesa no encontrado':
+          return res.status(404).json({
+            success: false,
+            message: 'Estado de mesa no encontrado',
+          });
+        default:
+          return res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+          });
+      }
+    }
+  }
 }
 
 module.exports = CircuitosController;

@@ -47,6 +47,21 @@ export default function ListasEleccion() {
     }
   };
 
+  const handleVotarEnBlanco = () => {
+    dispatch(
+      registrarVoto({
+        eleccionId: eleccionSeleccionada.id,
+        lista: { tipo: 'Blanco' },
+      })
+    );
+
+    if (currentElectionIndex < eleccionesActivas.length - 1) {
+      dispatch(nextElection());
+    } else {
+      dispatch(completarVotacion());
+    }
+  };
+
   const isPresidentialElection = (listas) => {
     return listas.length > 0 && Object.prototype.hasOwnProperty.call(listas[0], 'nro_lista');
   };
@@ -126,10 +141,22 @@ export default function ListasEleccion() {
           <p className="text-white/70 text-lg">No hay listas disponibles para esta elección</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {transformedListas.map((lista) => (
-            <CandidateCard key={lista.id || lista.numero} lista={lista} onVotar={handleVotar} isPresidential={isPres} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {transformedListas.map((lista) => (
+              <CandidateCard key={lista.id || lista.numero} lista={lista} onVotar={handleVotar} isPresidential={isPres} />
+            ))}
+          </div>
+
+          {/* Voto en Blanco */}
+          <div className="flex justify-center mt-8">
+            <Button
+              onClick={handleVotarEnBlanco}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-4 text-lg font-semibold rounded-lg border-2 border-gray-500 hover:border-gray-400 transition-all duration-200"
+            >
+              Votar en Blanco
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -52,6 +52,11 @@ export default function VoteSubmission() {
           papeletasPorEleccion[vote.eleccion_id] = [];
         }
 
+        // Si es un voto en blanco, no agregamos papeletas
+        if (vote.lista_seleccionada.tipo === 'Blanco') {
+          return;
+        }
+
         if (vote.lista_seleccionada.nro_lista) {
           papeletasPorEleccion[vote.eleccion_id].push({
             papeleta_id: vote.lista_seleccionada.id,
@@ -71,6 +76,7 @@ export default function VoteSubmission() {
         circuito_numero: totem.nroCircuito,
         tipo: user.tipo === 'observado' ? 'Observado' : 'Normal',
         papeletas_por_eleccion: papeletasPorEleccion,
+        votos_blancos: votes.filter((vote) => vote.lista_seleccionada.tipo === 'Blanco').map((vote) => vote.eleccion_id),
       };
 
       const result = await dispatch(enviarVotoCompleto(voteData)).unwrap();
@@ -95,6 +101,15 @@ export default function VoteSubmission() {
   const getVoteDisplayData = (vote) => {
     const election = eleccionesActivas.find((e) => e.id === vote.eleccion_id);
     const lista = vote.lista_seleccionada;
+
+    // Si es un voto en blanco
+    if (lista.tipo === 'Blanco') {
+      return {
+        eleccionNombre: election?.nombre || 'Elección desconocida',
+        eleccionTipo: election?.tipo || '',
+        votoTexto: 'Voto en Blanco',
+      };
+    }
 
     return {
       eleccionNombre: election?.nombre || 'Elección desconocida',

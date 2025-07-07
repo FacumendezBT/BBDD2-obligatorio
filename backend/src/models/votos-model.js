@@ -11,22 +11,24 @@ class VotosModel {
         circuito_direccion,
         circuito_numero,
         papeletas_por_eleccion,
+        votos_blancos = [],
         tipo = 'Normal',
         hora_emision = new Date(),
       } = votoData;
 
-      // Validar que tenemos al menos una elección
-      if (!papeletas_por_eleccion || Object.keys(papeletas_por_eleccion).length === 0) {
+      // Validar que tenemos al menos una elección (incluyendo votos en blanco)
+      const totalElecciones = Object.keys(papeletas_por_eleccion || {}).length + (votos_blancos?.length || 0);
+      if (totalElecciones === 0) {
         throw new Error('Debe haber al menos una elección para votar');
       }
 
-      const eleccionesIds = Object.keys(papeletas_por_eleccion);
+      const eleccionesIds = Object.keys(papeletas_por_eleccion || {});
       const resultados = [];
 
       // Generar un ID único para toda la transacción de voto
       const transaccion_id = VotosModel.generarIdUnico();
 
-      // Procesar cada elección
+      // Procesar cada elección con papeletas
       for (const eleccionId of eleccionesIds) {
         const papeletas = papeletas_por_eleccion[eleccionId];
 
@@ -99,6 +101,13 @@ class VotosModel {
           await executeTransaction(papeletasQueries);
         }
 
+        resultados.push({
+          eleccion_id: parseInt(eleccionId),
+          voto_id: votoId,
+          tipo: 'Normal',
+          transaccion_id: id_generado,
+        });
+
         // Si es un voto observado, crear registro en tabla Observado
         if (tipo === 'Observado') {
           const observadoQuery = {
@@ -107,21 +116,78 @@ class VotosModel {
           };
           await executeTransaction([observadoQuery]);
         }
+      }
 
-        // Guardar resultado para esta elección
+      // Procesar votos en blanco
+      for (const eleccionId of votos_blancos || []) {
+        // Validar que el ciudadano puede votar en esta elección
+        const validacion = await VotosModel.validarVotoParaEleccion({
+          ciudadano_credencial,
+          eleccion_id: parseInt(eleccionId),
+          circuito_direccion,
+          circuito_numero,
+        });
+
+        if (!validacion.valido) {
+          throw new Error(`Elección ${eleccionId}: ${validacion.mensaje}`);
+        }
+
+        // Obtener el número de mesa para esta elección
+        const mesa_numero = await VotosModel.getNroMesaPorCircuitoYEleccion(
+          circuito_direccion,
+          circuito_numero,
+          parseInt(eleccionId)
+        );
+
+        const hash_integridad = VotosModel.generarHashIntegridad();
+        const id_generado = `${transaccion_id}-${eleccionId}`;
+        const estado_inicial = 'Emitido'; // Los votos en blanco no pueden ser observados
+
+        // Queries para voto en blanco
+        const queries = [
+          {
+            query: `
+              INSERT INTO Voto (
+                hora_emision, 
+                hash_integridad, 
+                estado_actual, 
+                tipo, 
+                fk_circuito_establecimiento_direccion, 
+                fk_circuito_nro
+              ) VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            params: [hora_emision, hash_integridad, estado_inicial, 'Blanco', circuito_direccion, circuito_numero],
+          },
+          {
+            query: `
+              INSERT INTO Vota (
+                fk_formulam_eleccion_id, 
+                fk_formulam_nro_mesa, 
+                fk_ciudadano_nro_credencial, 
+                id_generado, 
+                fecha_hora
+              ) VALUES (?, ?, ?, ?, ?)
+            `,
+            params: [parseInt(eleccionId), mesa_numero, ciudadano_credencial, id_generado, hora_emision],
+          },
+        ];
+
+        // Ejecutar transacción para voto en blanco
+        const results = await executeTransaction(queries);
+        const votoId = results[0].insertId;
+
         resultados.push({
           eleccion_id: parseInt(eleccionId),
           voto_id: votoId,
-          hash_integridad,
-          id_generado,
-          estado: estado_inicial,
+          tipo: 'Blanco',
+          transaccion_id: id_generado,
         });
       }
 
       return {
         transaccion_id,
         votos: resultados,
-        total_elecciones: eleccionesIds.length,
+        total_elecciones: resultados.length,
       };
     } catch (error) {
       mysqlLogger.error('Error enviando voto:', error);

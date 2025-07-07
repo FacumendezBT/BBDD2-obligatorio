@@ -6,17 +6,19 @@ class VotosController {
     try {
       const votoData = req.body;
 
-      // Extraer los IDs de las elecciones del objeto papeletas_por_eleccion
+      // Extraer los IDs de las elecciones del objeto papeletas_por_eleccion y votos_blancos
       const eleccionesIds = Object.keys(votoData.papeletas_por_eleccion || {}).map((id) => parseInt(id));
+      const votosBlancosIds = (votoData.votos_blancos || []).map((id) => parseInt(id));
+      const todasElecciones = [...eleccionesIds, ...votosBlancosIds];
 
-      if (eleccionesIds.length === 0) {
+      if (todasElecciones.length === 0) {
         throw new Error('Debe haber al menos una elección para votar');
       }
 
       // Validar todas las elecciones
       const validacion = await VotosModel.validarVoto({
         ciudadano_credencial: votoData.ciudadano_credencial,
-        elecciones_ids: eleccionesIds,
+        elecciones_ids: todasElecciones,
         circuito_direccion: votoData.circuito_direccion,
         circuito_numero: votoData.circuito_numero,
       });
@@ -30,7 +32,7 @@ class VotosController {
       appLogger.info('Voto enviado exitosamente', {
         transaccionId: resultado.transaccion_id,
         ciudadano: votoData.ciudadano_credencial,
-        elecciones: eleccionesIds,
+        elecciones: todasElecciones,
         totalElecciones: resultado.total_elecciones,
       });
 
@@ -45,6 +47,7 @@ class VotosController {
         error: error.message,
         ciudadano: req.body.ciudadano_credencial,
         elecciones: req.body.papeletas_por_eleccion ? Object.keys(req.body.papeletas_por_eleccion) : [],
+        votosBlanco: req.body.votos_blancos || [],
         ip: req.ip,
         userAgent: req.get('User-Agent'),
       });

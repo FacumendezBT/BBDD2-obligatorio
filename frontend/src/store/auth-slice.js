@@ -27,6 +27,18 @@ export const loginUsuario = createAsyncThunk('auth/loginUsuario', async ({ crede
   }
 });
 
+export const loginMiembroMesa = createAsyncThunk(
+  'auth/loginMiembroMesa',
+  async ({ credencial, password }, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.loginUsuario(credencial, password);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
   try {
     await AuthService.logout();
@@ -87,6 +99,27 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginUsuario.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+      });
+
+    // Login de miembro de mesa
+    builder
+      .addCase(loginMiembroMesa.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginMiembroMesa.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.tokenito;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(loginMiembroMesa.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.isAuthenticated = false;

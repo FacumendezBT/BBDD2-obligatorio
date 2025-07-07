@@ -115,21 +115,21 @@ class CircuitosModel {
   static async getEstadoActualMesa(electionId, mesaNumber) {
     try {
       const query = `
-        SELECT fmec.fk_estadocircuito_tipo as estado
+        SELECT 
+          fmec.fk_estadocircuito_tipo as estado,
+          fmec.fecha_hora,
+          ec.descripcion
         FROM FormulaMesa_EstadoCircuito fmec
+        JOIN EstadoCircuito ec ON fmec.fk_estadocircuito_tipo = ec.tipo
         WHERE fmec.fk_formulam_eleccion_id = ?
         AND fmec.fk_formulam_nro_mesa = ?
-        AND fmec.fecha_hora = (
-          SELECT MAX(fecha_hora)
-          FROM FormulaMesa_EstadoCircuito
-          WHERE fk_formulam_eleccion_id = ?
-          AND fk_formulam_nro_mesa = ?
-        )
+        ORDER BY fmec.fecha_hora DESC
+        LIMIT 1
       `;
-      const results = await executeQuery(query, [electionId, mesaNumber, electionId, mesaNumber]);
-      return results[0] ? results[0].estado : null;
+      const results = await executeQuery(query, [electionId, mesaNumber]);
+      return results[0] || null;
     } catch (error) {
-      mysqlLogger.error('Error getting mesa current status:', error);
+      mysqlLogger.error('Error obteniendo estado actual de mesa:', error);
       throw error;
     }
   }
@@ -253,6 +253,70 @@ class CircuitosModel {
       return results[0] || null;
     } catch (error) {
       mysqlLogger.error('Error trayendo número de circuito por IP de tótem:', error);
+      throw error;
+    }
+  }
+
+  static async getMesasPorCredencial(credencial) {
+    try {
+      const query = `
+        SELECT
+          fm.fk_eleccion_id,
+          fm.nro_mesa,
+          fm.es_accesible,
+          fm.estado_actual,
+          fm.fk_circuito_establecimiento_direccion,
+          fm.fk_circuito_nro,
+          e.nombre as eleccion_nombre,
+          e.fecha_hora_inicio,
+          e.fecha_hora_fin,
+          e.tipo as eleccion_tipo,
+          CASE 
+            WHEN fm.fk_presidente_credencial = ? THEN 'presidente'
+            WHEN fm.fk_secretario_credencial = ? THEN 'secretario'
+            WHEN fm.fk_vocal_credencial = ? THEN 'vocal'
+            ELSE 'Desconocido'
+          END as rol_usuario
+        FROM FormulaMesa fm
+        JOIN Eleccion e ON fm.fk_eleccion_id = e.id
+        WHERE fm.fk_presidente_credencial = ? 
+           OR fm.fk_secretario_credencial = ? 
+           OR fm.fk_vocal_credencial = ?
+        ORDER BY e.fecha_hora_inicio DESC
+      `;
+      return await executeQuery(query, [
+        credencial,
+        credencial,
+        credencial, // Para el CASE
+        credencial,
+        credencial,
+        credencial, // Para el WHERE
+      ]);
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo mesas por credencial:', error);
+      throw error;
+    }
+  }
+
+  static async isMesaCerrada(electionId, mesaNumber) {
+    try {
+      const query = `
+        SELECT COUNT(*) as is_closed
+        FROM FormulaMesa_EstadoCircuito fmec
+        WHERE fmec.fk_formulam_eleccion_id = ?
+        AND fmec.fk_formulam_nro_mesa = ?
+        AND fmec.fk_estadocircuito_tipo = 'Cerrado'
+        AND fmec.fecha_hora = (
+          SELECT MAX(fmec2.fecha_hora)
+          FROM FormulaMesa_EstadoCircuito fmec2
+          WHERE fmec2.fk_formulam_eleccion_id = ?
+          AND fmec2.fk_formulam_nro_mesa = ?
+        )
+      `;
+      const results = await executeQuery(query, [electionId, mesaNumber, electionId, mesaNumber]);
+      return results[0].is_closed > 0;
+    } catch (error) {
+      mysqlLogger.error('Error verificando si mesa está cerrada:', error);
       throw error;
     }
   }
