@@ -15,7 +15,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -32,7 +32,7 @@ class ReportesModel {
         INNER JOIN Voto v ON vp.fk_voto_id = v.id
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         AND pap.fk_eleccion_id = ?
         GROUP BY l.nro_lista, p.nombre
         
@@ -48,7 +48,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -62,7 +62,7 @@ class ReportesModel {
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
         AND v.tipo = 'Blanco'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         UNION ALL
         
@@ -76,7 +76,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -90,7 +90,7 @@ class ReportesModel {
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
         AND v.tipo = 'Anulado'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         ORDER BY cantidad_votos DESC
       `;
@@ -138,7 +138,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND v2.tipo IN ('Normal', 'Observado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
@@ -156,7 +156,7 @@ class ReportesModel {
         INNER JOIN Voto v ON vp.fk_voto_id = v.id
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         AND v.tipo IN ('Normal', 'Observado')
         AND pap.fk_eleccion_id = ?
         GROUP BY p.nombre
@@ -172,7 +172,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -186,7 +186,7 @@ class ReportesModel {
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
         AND v.tipo = 'Blanco'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         UNION ALL
         
@@ -199,7 +199,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -213,7 +213,7 @@ class ReportesModel {
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
         AND v.tipo = 'Anulado'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         ORDER BY cantidad_votos DESC
       `;
@@ -262,7 +262,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -281,7 +281,7 @@ class ReportesModel {
         INNER JOIN Voto v ON vp.fk_voto_id = v.id
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         AND pap.fk_eleccion_id = ?
         GROUP BY p.nombre, c.nombre_completo
         
@@ -297,7 +297,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -311,7 +311,7 @@ class ReportesModel {
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
         AND v.tipo = 'Blanco'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         UNION ALL
         
@@ -325,7 +325,7 @@ class ReportesModel {
                FROM Voto v2 
                WHERE v2.fk_circuito_establecimiento_direccion = ? 
                AND v2.fk_circuito_nro = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -339,7 +339,7 @@ class ReportesModel {
         WHERE v.fk_circuito_establecimiento_direccion = ?
         AND v.fk_circuito_nro = ?
         AND v.tipo = 'Anulado'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         ORDER BY cantidad_votos DESC
       `;
@@ -389,7 +389,7 @@ class ReportesModel {
                AND v2.fk_circuito_nro = c2.nro
                INNER JOIN Establecimiento e2 ON c2.fk_establecimiento_direccion = e2.direccion
                WHERE e2.fk_departamento_id = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND v2.tipo IN ('Normal', 'Observado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
@@ -409,7 +409,7 @@ class ReportesModel {
         AND v.fk_circuito_nro = c.nro
         INNER JOIN Establecimiento e ON c.fk_establecimiento_direccion = e.direccion
         WHERE e.fk_departamento_id = ?
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         AND v.tipo IN ('Normal', 'Observado')
         AND pap.fk_eleccion_id = ?
         GROUP BY p.nombre
@@ -427,7 +427,7 @@ class ReportesModel {
                AND v2.fk_circuito_nro = c2.nro
                INNER JOIN Establecimiento e2 ON c2.fk_establecimiento_direccion = e2.direccion
                WHERE e2.fk_departamento_id = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -443,7 +443,7 @@ class ReportesModel {
         INNER JOIN Establecimiento e ON c.fk_establecimiento_direccion = e.direccion
         WHERE e.fk_departamento_id = ?
         AND v.tipo = 'Blanco'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         UNION ALL
         
@@ -458,7 +458,7 @@ class ReportesModel {
                AND v2.fk_circuito_nro = c2.nro
                INNER JOIN Establecimiento e2 ON c2.fk_establecimiento_direccion = e2.direccion
                WHERE e2.fk_departamento_id = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -474,7 +474,7 @@ class ReportesModel {
         INNER JOIN Establecimiento e ON c.fk_establecimiento_direccion = e.direccion
         WHERE e.fk_departamento_id = ?
         AND v.tipo = 'Anulado'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         ORDER BY cantidad_votos DESC
       `;
@@ -518,7 +518,7 @@ class ReportesModel {
                AND v2.fk_circuito_nro = c2.nro
                INNER JOIN Establecimiento e2 ON c2.fk_establecimiento_direccion = e2.direccion
                WHERE e2.fk_departamento_id = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -539,7 +539,7 @@ class ReportesModel {
         AND v.fk_circuito_nro = circ.nro
         INNER JOIN Establecimiento e ON circ.fk_establecimiento_direccion = e.direccion
         WHERE e.fk_departamento_id = ?
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         AND pap.fk_eleccion_id = ?
         GROUP BY p.nombre, c.nombre_completo
         
@@ -557,7 +557,7 @@ class ReportesModel {
                AND v2.fk_circuito_nro = c2.nro
                INNER JOIN Establecimiento e2 ON c2.fk_establecimiento_direccion = e2.direccion
                WHERE e2.fk_departamento_id = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -573,7 +573,7 @@ class ReportesModel {
         INNER JOIN Establecimiento e ON c.fk_establecimiento_direccion = e.direccion
         WHERE e.fk_departamento_id = ?
         AND v.tipo = 'Blanco'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         UNION ALL
         
@@ -589,7 +589,7 @@ class ReportesModel {
                AND v2.fk_circuito_nro = c2.nro
                INNER JOIN Establecimiento e2 ON c2.fk_establecimiento_direccion = e2.direccion
                WHERE e2.fk_departamento_id = ?
-               AND v2.estado_actual = 'Contado'
+               AND v2.estado_actual IN ('Emitido', 'Contado')
                AND EXISTS (
                  SELECT 1 FROM Voto_Papeleta vp2 
                  INNER JOIN Papeleta pap2 ON vp2.fk_papeleta_id = pap2.id 
@@ -605,7 +605,7 @@ class ReportesModel {
         INNER JOIN Establecimiento e ON c.fk_establecimiento_direccion = e.direccion
         WHERE e.fk_departamento_id = ?
         AND v.tipo = 'Anulado'
-        AND v.estado_actual = 'Contado'
+        AND v.estado_actual IN ('Emitido', 'Contado')
         
         ORDER BY cantidad_votos DESC
       `;
@@ -653,7 +653,7 @@ class ReportesModel {
         INNER JOIN Partido p ON l.fk_partido_id = p.id
         INNER JOIN Candidato cand ON l.fk_candidato_credencial = cand.fk_ciudadano_nro_credencial
         INNER JOIN Ciudadano c ON cand.fk_ciudadano_nro_credencial = c.nro_credencial
-        WHERE v.estado_actual = 'Contado'
+        WHERE v.estado_actual IN ('Emitido', 'Contado')
         AND v.tipo IN ('Normal', 'Observado')
         AND pap.fk_eleccion_id = ?
         GROUP BY d.id, d.nombre, p.nombre, c.nombre_completo
@@ -670,7 +670,7 @@ class ReportesModel {
             INNER JOIN Lista l2 ON pap2.id = l2.fk_papeleta_id
             INNER JOIN Candidato cand2 ON l2.fk_candidato_credencial = cand2.fk_ciudadano_nro_credencial
             WHERE e2.fk_departamento_id = d.id
-            AND v2.estado_actual = 'Contado'
+            AND v2.estado_actual IN ('Emitido', 'Contado')
             AND v2.tipo IN ('Normal', 'Observado')
             AND pap2.fk_eleccion_id = ?
             GROUP BY cand2.fk_ciudadano_nro_credencial
