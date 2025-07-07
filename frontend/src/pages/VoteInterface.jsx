@@ -4,16 +4,40 @@ import { useAppSelector } from '@/store/hooks';
 import { selectIsAuthenticated, selectUser } from '@/store/auth-slice';
 import { selectTotem } from '@/store/totem-slice';
 import { selectEleccionSeleccionada } from '@/store/elecciones-slice';
+import { selectIsVotingComplete } from '@/store/voting-slice';
 import ActiveElecciones from '@/components/ActiveElecciones';
 import ListasEleccion from '@/components/ListasEleccion';
+import VoteSubmission from '@/components/VoteSubmission';
 
 export default function VoteInterface() {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectUser);
   const eleccionSeleccionada = useAppSelector(selectEleccionSeleccionada);
+  const isVotingComplete = useAppSelector(selectIsVotingComplete);
   const dataCircuito = useAppSelector(selectTotem);
 
   const isObservado = user?.tipo === 'observado';
+
+  // Determine which component to render
+  const renderContent = () => {
+    if (isVotingComplete) {
+      return <VoteSubmission />;
+    } else if (eleccionSeleccionada) {
+      return <ListasEleccion />;
+    } else {
+      return <ActiveElecciones />;
+    }
+  };
+
+  const getHeaderMessage = () => {
+    if (isVotingComplete) {
+      return 'Confirme su voto para enviarlo';
+    } else if (eleccionSeleccionada) {
+      return 'Seleccione una lista para votar';
+    } else {
+      return 'Cargando elecciones disponibles...';
+    }
+  };
 
 
   if (isAuthenticated) {
@@ -35,7 +59,7 @@ export default function VoteInterface() {
                 <div>
                   <h1 className="text-white text-3xl font-bold">Sistema de Votación Electrónica</h1>
                   <p className="text-white/70">
-                    {eleccionSeleccionada ? 'Seleccione una lista para votar' : 'Seleccione una elección para votar'}
+                    {getHeaderMessage()}
                   </p>
                 </div>
               </div>
@@ -45,10 +69,12 @@ export default function VoteInterface() {
               </div>
             </div>
 
-            {eleccionSeleccionada ? <ListasEleccion /> : <ActiveElecciones />}
+            {renderContent()}
           </div>
         </Card>
       </div>
     );
   }
+  
+  return null; // Return null when not authenticated
 }

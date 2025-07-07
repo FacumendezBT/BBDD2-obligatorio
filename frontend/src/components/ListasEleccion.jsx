@@ -7,8 +7,15 @@ import {
   selectListasEleccion,
   selectEleccionesLoading,
   selectEleccionesError,
-  seleccionarEleccion
+  selectEleccionesActivas,
+  selectCurrentElectionIndex,
+  nextElection
 } from '@/store/elecciones-slice';
+import { 
+  registrarVoto, 
+  completarVotacion,
+  selectVotes 
+} from '@/store/voting-slice';
 import CandidateCard from './CandidateCard';
 import { toast } from 'sonner';
 import { LucideTriangleAlert } from 'lucide-react';
@@ -16,9 +23,13 @@ import { LucideTriangleAlert } from 'lucide-react';
 export default function ListasEleccion() {
   const dispatch = useAppDispatch();
   const eleccionSeleccionada = useAppSelector(selectEleccionSeleccionada);
+  const eleccionesActivas = useAppSelector(selectEleccionesActivas);
+  const currentElectionIndex = useAppSelector(selectCurrentElectionIndex);
   const listas = useAppSelector(selectListasEleccion);
   const isLoading = useAppSelector(selectEleccionesLoading);
   const error = useAppSelector(selectEleccionesError);
+  const votes = useAppSelector(selectVotes);
+  const hasVotedForCurrentElection = votes.some(vote => vote.eleccion_id === eleccionSeleccionada?.id);
 
   useEffect(() => {
     if (eleccionSeleccionada) {
@@ -26,30 +37,31 @@ export default function ListasEleccion() {
     }
   }, [dispatch, eleccionSeleccionada]);
 
-  const handleVolver = () => {
-    dispatch(seleccionarEleccion(null));
-  };
-
   const handleVotar = (lista) => {
-    // Verificar si es el formato de elección presidencial/ballotage
+    dispatch(registrarVoto({
+      eleccionId: eleccionSeleccionada.id,
+      lista: lista
+    }));
+
     if (lista.nro_lista) {
       toast.success(`Voto registrado para la Lista ${lista.nro_lista} - ${lista.partido_nombre}`);
     } else {
-      // Es referéndum o plebiscito
       toast.success(`Voto registrado: ${lista.descripcion}`);
     }
-    console.log('Votando por:', lista);
+
+    if (currentElectionIndex < eleccionesActivas.length - 1) {
+      dispatch(nextElection());
+    } else {
+      dispatch(completarVotacion());
+    }
   };
 
-  // Función para determinar si es elección presidencial/ballotage
   const isPresidentialElection = (listas) => {
     return listas.length > 0 && Object.prototype.hasOwnProperty.call(listas[0], 'nro_lista');
   };
 
-  // Función para transformar datos según el tipo de elección
   const transformListaData = (lista) => {
     if (lista.nro_lista) {
-      // Formato presidencial/ballotage
       return {
         id: lista.fk_papeleta_id,
         numero: lista.nro_lista,
@@ -66,7 +78,6 @@ export default function ListasEleccion() {
         departamento: lista.departamento_nombre
       };
     } else {
-      // Formato referéndum/plebiscito
       return {
         id: lista.id,
         numero: lista.es_si ? 'SÍ' : 'NO',
@@ -99,9 +110,6 @@ export default function ListasEleccion() {
         </div>
         <h2 className="text-xl font-semibold text-white mb-2">Error al cargar</h2>
         <p className="text-white/90 mb-4 max-w-[400px] text-center">No se pudieron cargar las listas electorales, favor de contactar con un miembro de mesa.</p>
-        <Button onClick={handleVolver} variant="primary" className="bg-red-500 text-white">
-          Volver
-        </Button>
       </div>
     );
   }
@@ -114,14 +122,11 @@ export default function ListasEleccion() {
             {eleccionSeleccionada?.nombre}
           </h2>
           <p className="text-white/70">Tipo de Elección: {eleccionSeleccionada?.tipo}</p>
+          <p className="text-white/70">Elección {currentElectionIndex + 1} de {eleccionesActivas.length}</p>
+          {hasVotedForCurrentElection && (
+            <p className="text-green-400 font-semibold">✓ Ya has votado en esta elección</p>
+          )}
         </div>
-        <Button 
-          onClick={handleVolver}
-          variant="outline" 
-          className="text-white border-white hover:bg-white hover:text-gray-900 bg-transparent"
-        >
-          ← Volver a Elecciones
-        </Button>
       </div>
       {listas.length === 0 ? (
         <div className="flex items-center justify-center h-full">

@@ -17,19 +17,56 @@ const mesaValidacion = [
 ];
 
 const departmentoIdValidacion = [
-  param('departmentId').isInt({ min: 1 }).withMessage('El ID del departamento debe ser un número entero positivo')
+  param('departmentId').isInt({ min: 1 }).withMessage('El ID del departamento debe ser un número entero positivo'),
 ];
 
 const eleccionIdValidacion = [
-  param('electionId').isInt({ min: 1 }).withMessage('El ID de la elección debe ser un número entero positivo')
+  param('electionId').isInt({ min: 1 }).withMessage('El ID de la elección debe ser un número entero positivo'),
 ];
 
 router.get('/totem', CircuitosController.nroCircuitoPorIp);
 router.get('/', autenticar(['admin']), CircuitosController.getTodosCircuitos);
-router.get('/departmento/:departmentId', autenticar(['admin']), departmentoIdValidacion, validarExpressValidator, CircuitosController.getCircuitosPorDepartamento);
-router.get('/:direccion/:numero', autenticar(['admin', 'presidente', 'secretario', 'vocal']), circuitoValidacion, validarExpressValidator, CircuitosController.getInfoCircuito);
-router.get('/assignado/:electionId', autenticar(['votante', 'observado']), eleccionIdValidacion, validarExpressValidator, CircuitosController.getCircuitoAsignadoUsuario);
-router.get('/mesa/:electionId/:mesaNumber', autenticar(['admin', 'presidente', 'secretario', 'vocal']), mesaValidacion, validarExpressValidator, CircuitosController.getInfoMesa);
-router.put('/mesa/:electionId/:mesaNumber/cerrar', autenticar(['presidente']), mesaValidacion, validarExpressValidator, CircuitosController.cerrarMesa);
+router.get(
+  '/departmento/:departmentId',
+  autenticar(['admin']),
+  departmentoIdValidacion,
+  validarExpressValidator,
+  CircuitosController.getCircuitosPorDepartamento
+);
+router.get(
+  '/:direccion/:numero',
+  autenticar(['admin', 'presidente', 'secretario', 'vocal']),
+  circuitoValidacion,
+  validarExpressValidator,
+  CircuitosController.getInfoCircuito
+);
+router.get(
+  '/assignado/:electionId',
+  autenticar(['votante', 'observado']),
+  eleccionIdValidacion,
+  validarExpressValidator,
+  CircuitosController.getCircuitoAsignadoUsuario
+);
+router.get(
+  '/mesa/:electionId/:mesaNumber',
+  autenticar(['admin', 'presidente', 'secretario', 'vocal']),
+  mesaValidacion,
+  validarExpressValidator,
+  CircuitosController.getInfoMesa
+);
+router.put(
+  '/mesa/:electionId/:mesaNumber/abrir',
+  autenticar(['presidente']),
+  mesaValidacion,
+  validarExpressValidator,
+  CircuitosController.abrirMesa
+);
+router.put(
+  '/mesa/:electionId/:mesaNumber/cerrar',
+  autenticar(['presidente']),
+  mesaValidacion,
+  validarExpressValidator,
+  CircuitosController.cerrarMesa
+);
 
 module.exports = router;

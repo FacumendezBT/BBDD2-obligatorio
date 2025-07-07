@@ -2,7 +2,6 @@ const VotosModel = require('../models/votos-model');
 const { appLogger } = require('../config/logger');
 
 class VotosController {
-  
   static async enviarVoto(req, res, next) {
     try {
       const votoData = req.body;
@@ -13,18 +12,18 @@ class VotosController {
       }
 
       const resultado = await VotosModel.enviarVoto(votoData);
-      
+
       appLogger.info('Voto enviado exitosamente', {
         votoId: resultado.votoId,
         ciudadano: votoData.ciudadano_credencial,
-        eleccion: votoData.eleccion_id
+        eleccion: votoData.eleccion_id,
       });
 
       res.status(201).json({
         votoId: resultado.votoId,
         hash_integridad: resultado.hash_integridad,
         id_generado: resultado.id_generado,
-        estado: resultado.estado
+        estado: resultado.estado,
       });
     } catch (error) {
       appLogger.warn('Error enviando voto', {
@@ -48,6 +47,10 @@ class VotosController {
           return res.status(400).json({
             message: 'El circuito no corresponde al ciudadano',
           });
+        case 'La mesa de votación no está abierta':
+          return res.status(400).json({
+            message: 'La mesa de votación no está abierta',
+          });
         default:
           return res.status(500).json({
             message: 'Error interno del servidor',
@@ -61,14 +64,14 @@ class VotosController {
       const votoData = req.body;
 
       const validacion = await VotosModel.validarVoto(votoData);
-      
+
       if (!validacion.valido) {
         throw new Error(validacion.mensaje);
       }
 
       res.status(200).json({
         valido: true,
-        message: validacion.mensaje
+        message: validacion.mensaje,
       });
     } catch (error) {
       appLogger.warn('Error validando voto', {
@@ -92,6 +95,10 @@ class VotosController {
           return res.status(400).json({
             message: 'El circuito no corresponde al ciudadano',
           });
+        case 'La mesa de votación no está abierta':
+          return res.status(400).json({
+            message: 'La mesa de votación no está abierta',
+          });
         default:
           return res.status(500).json({
             message: 'Error interno del servidor',
@@ -103,9 +110,9 @@ class VotosController {
   static async obtenerEstadoVotacion(req, res, next) {
     try {
       const { idEleccion } = req.params;
-      
+
       const estado = await VotosModel.obtenerEstadoVotacion(idEleccion);
-      
+
       if (!estado) {
         throw new Error('Elección no encontrada');
       }
@@ -138,10 +145,10 @@ class VotosController {
       const { credencial_integrante } = req.body;
 
       const resultado = await VotosModel.aprobarVoto(idVoto, credencial_integrante);
-      
+
       appLogger.info('Voto aprobado', {
         votoId: idVoto,
-        integranteMesa: credencial_integrante
+        integranteMesa: credencial_integrante,
       });
 
       res.status(200).json(resultado);
@@ -176,7 +183,7 @@ class VotosController {
       const { direccionCircuito, numeroCircuito } = req.params;
 
       const votos = await VotosModel.obtenerVotosPorCircuito(direccionCircuito, numeroCircuito);
-      
+
       res.status(200).json(votos);
     } catch (error) {
       appLogger.warn('Error obteniendo votos por circuito', {

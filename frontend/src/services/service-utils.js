@@ -38,3 +38,5 @@ apiConnector.interceptors.response.use(
     return Promise.reject(customError);
   }
 );
+
+export default apiConnector;

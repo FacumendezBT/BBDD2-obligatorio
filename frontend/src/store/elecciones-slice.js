@@ -4,6 +4,7 @@ import EleccionesService from '../services/elecciones-service';
 const initialState = {
   eleccionesActivas: [],
   eleccionSeleccionada: null,
+  currentElectionIndex: 0,
   listas: [],
   stats: null,
   loading: false,
@@ -57,9 +58,23 @@ const eleccionesSlice = createSlice({
     seleccionarEleccion: (state, action) => {
       state.eleccionSeleccionada = action.payload;
     },
+    setCurrentElectionIndex: (state, action) => {
+      state.currentElectionIndex = action.payload;
+      // Auto-select the election at the current index
+      if (state.eleccionesActivas.length > action.payload) {
+        state.eleccionSeleccionada = state.eleccionesActivas[action.payload];
+      }
+    },
+    nextElection: (state) => {
+      if (state.currentElectionIndex < state.eleccionesActivas.length - 1) {
+        state.currentElectionIndex += 1;
+        state.eleccionSeleccionada = state.eleccionesActivas[state.currentElectionIndex];
+      }
+    },
     resetElecciones: (state) => {
       state.eleccionesActivas = [];
       state.eleccionSeleccionada = null;
+      state.currentElectionIndex = 0;
       state.listas = [];
       state.stats = null;
       state.loading = false;
@@ -85,6 +100,11 @@ const eleccionesSlice = createSlice({
         state.eleccionesActivas = action.payload;
         state.isInitialized = true;
         state.error = null;
+        // Auto-select the first election
+        if (action.payload.length > 0) {
+          state.eleccionSeleccionada = action.payload[0];
+          state.currentElectionIndex = 0;
+        }
       })
       .addCase(cargarEleccionesActivas.rejected, (state, action) => {
         state.loading = false;
@@ -129,6 +149,7 @@ const eleccionesSlice = createSlice({
 // Selectores
 export const selectEleccionesActivas = (state) => state.elecciones.eleccionesActivas;
 export const selectEleccionSeleccionada = (state) => state.elecciones.eleccionSeleccionada;
+export const selectCurrentElectionIndex = (state) => state.elecciones.currentElectionIndex;
 export const selectListasEleccion = (state) => state.elecciones.listas;
 export const selectStatsEleccion = (state) => state.elecciones.stats;
 export const selectEleccionesLoading = (state) => state.elecciones.loading;
@@ -136,7 +157,15 @@ export const selectEleccionesError = (state) => state.elecciones.error;
 export const selectEleccionesIsInitialized = (state) => state.elecciones.isInitialized;
 
 // Acciones
-export const { clearError, seleccionarEleccion, resetElecciones, clearListas, clearStats } = eleccionesSlice.actions;
+export const { 
+  clearError, 
+  seleccionarEleccion, 
+  setCurrentElectionIndex, 
+  nextElection, 
+  resetElecciones, 
+  clearListas, 
+  clearStats 
+} = eleccionesSlice.actions;
 
 // Reducer
 export default eleccionesSlice.reducer;

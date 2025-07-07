@@ -25,7 +25,7 @@ class CircuitosModel {
       const results = await executeQuery(query, [direccion, numero]);
       return results[0] || null;
     } catch (error) {
-      mysqlLogger.error('Error getting circuit info:', error);
+      mysqlLogger.error('Error trayendo información del circuito:', error);
       throw error;
     }
   }
@@ -65,17 +65,8 @@ class CircuitosModel {
       const query = `
         SELECT COUNT(*) as is_open
         FROM FormulaMesa fm
-        JOIN FormulaMesa_EstadoCircuito fmec ON fm.fk_eleccion_id = fmec.fk_formulam_eleccion_id
-          AND fm.nro_mesa = fmec.fk_formulam_nro_mesa
         WHERE fm.fk_eleccion_id = ?
-        AND fm.nro_mesa = ?
-        AND fmec.fk_estadocircuito_tipo = 'Abierto'
-        AND fmec.fecha_hora = (
-          SELECT MAX(fecha_hora)
-          FROM FormulaMesa_EstadoCircuito
-          WHERE fk_formulam_eleccion_id = fm.fk_eleccion_id
-          AND fk_formulam_nro_mesa = fm.nro_mesa
-        )
+        AND fm.nro_mesa = ? AND fm.estado_actual = 'Abierto'
       `;
       const results = await executeQuery(query, [electionId, mesaNumber]);
       return results[0].is_open > 0;
@@ -103,6 +94,63 @@ class CircuitosModel {
     }
   }
 
+  static async abrirMesa(electionId, mesaNumber, presidentCredencial) {
+    try {
+      const query = `
+        INSERT INTO FormulaMesa_EstadoCircuito (
+          fk_formulam_eleccion_id,
+          fk_formulam_nro_mesa,
+          fk_estadocircuito_tipo,
+          fecha_hora
+        ) VALUES (?, ?, 'Abierto', NOW())
+      `;
+      await executeQuery(query, [electionId, mesaNumber]);
+      return true;
+    } catch (error) {
+      mysqlLogger.error('Error opening mesa:', error);
+      throw error;
+    }
+  }
+
+  static async getEstadoActualMesa(electionId, mesaNumber) {
+    try {
+      const query = `
+        SELECT fmec.fk_estadocircuito_tipo as estado
+        FROM FormulaMesa_EstadoCircuito fmec
+        WHERE fmec.fk_formulam_eleccion_id = ?
+        AND fmec.fk_formulam_nro_mesa = ?
+        AND fmec.fecha_hora = (
+          SELECT MAX(fecha_hora)
+          FROM FormulaMesa_EstadoCircuito
+          WHERE fk_formulam_eleccion_id = ?
+          AND fk_formulam_nro_mesa = ?
+        )
+      `;
+      const results = await executeQuery(query, [electionId, mesaNumber, electionId, mesaNumber]);
+      return results[0] ? results[0].estado : null;
+    } catch (error) {
+      mysqlLogger.error('Error getting mesa current status:', error);
+      throw error;
+    }
+  }
+
+  static async getMesaPorCircuitoYEleccion(circuitoDireccion, circuitoNumero, eleccionId) {
+    try {
+      const query = `
+        SELECT fm.nro_mesa
+        FROM FormulaMesa fm
+        WHERE fm.fk_circuito_establecimiento_direccion = ?
+        AND fm.fk_circuito_nro = ?
+        AND fm.fk_eleccion_id = ?
+      `;
+      const results = await executeQuery(query, [circuitoDireccion, circuitoNumero, eleccionId]);
+      return results[0] || null;
+    } catch (error) {
+      mysqlLogger.error('Error getting mesa by circuit and election:', error);
+      throw error;
+    }
+  }
+
   static async getCircuitosPorDepartamento(departmentId) {
     try {
       const query = `
@@ -125,7 +173,7 @@ class CircuitosModel {
       `;
       return await executeQuery(query, [departmentId]);
     } catch (error) {
-      mysqlLogger.error('Error getting circuits by department:', error);
+      mysqlLogger.error('Error listando circuitos por departamento:', error);
       throw error;
     }
   }
@@ -151,7 +199,7 @@ class CircuitosModel {
       `;
       return await executeQuery(query);
     } catch (error) {
-      mysqlLogger.error('Error getting all circuits:', error);
+      mysqlLogger.error('Error levantando todos los circuitos:', error);
       throw error;
     }
   }
@@ -171,7 +219,7 @@ class CircuitosModel {
       `;
       return await executeQuery(query, [electionId, mesaNumber]);
     } catch (error) {
-      mysqlLogger.error('Error getting mesa status history:', error);
+      mysqlLogger.error('Error levantando historial de estado de mesa:', error);
       throw error;
     }
   }

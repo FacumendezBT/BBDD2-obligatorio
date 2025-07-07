@@ -42,6 +42,31 @@ class AuthController {
       });
       ciudadano.user_type = 'observado';
     }
+
+    // Validar que la mesa esté abierta para al menos una elección activa
+    let mesaAbiertaEnAlgunaEleccion = false;
+    for (const eleccion of eleccionesActivas) {
+      const yaVoto = await CiudadanoModel.yaVoto(credencial, eleccion.id);
+      if (!yaVoto) {
+        // Obtener la mesa correspondiente al circuito del usuario para esta elección
+        const mesaInfo = await CircuitosModel.getMesaPorCircuitoYEleccion(
+          circuitoAsociado.direccion,
+          circuitoAsociado.numero,
+          eleccion.id
+        );
+        if (mesaInfo) {
+          const mesaAbierta = await CircuitosModel.isMesaAbierta(eleccion.id, mesaInfo.nro_mesa);
+          if (mesaAbierta) {
+            mesaAbiertaEnAlgunaEleccion = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!mesaAbiertaEnAlgunaEleccion) {
+      throw new Error('La mesa de votación no está abierta');
+    }
   }
 
   static async login(req, res, next) {
@@ -121,6 +146,10 @@ class AuthController {
         case 'El usuario ya votó en todas las elecciones activas':
           return res.status(403).json({
             message: 'El usuario ya votó en todas las elecciones activas',
+          });
+        case 'La mesa de votación no está abierta':
+          return res.status(403).json({
+            message: 'La mesa de votación no está abierta',
           });
         default:
           return res.status(500).json({

@@ -1,29 +1,31 @@
 const { executeQuery, executeTransaction } = require('../config/database');
 const { mysqlLogger } = require('../config/logger');
 const crypto = require('crypto');
+const CircuitosModel = require('./circuitos-model');
 
 class VotosModel {
-    static async enviarVoto(votoData) {
-        try {
-            const {
-                ciudadano_credencial,
-                circuito_direccion,
-                circuito_numero,
-                eleccion_id,
-                mesa_numero,
-                papeletas = [],
-                tipo = 'Normal',
-                hora_emision = new Date()
-            } = votoData;
+  static async enviarVoto(votoData) {
+    try {
+      const {
+        ciudadano_credencial,
+        circuito_direccion,
+        circuito_numero,
+        eleccion_id,
+        papeletas = [],
+        tipo = 'Normal',
+        hora_emision = new Date(),
+      } = votoData;
 
-            const hash_integridad = VotosModel.generarHashIntegridad();
-            const id_generado = VotosModel.generarIdUnico();
+      const mesa_numero = await VotosModel.getNroMesaPorCircuitoYEleccion(circuito_direccion, circuito_numero, eleccion_id);
 
-            const estado_inicial = tipo === 'Observado' ? 'Emitido Observado' : 'Emitido';
+      const hash_integridad = VotosModel.generarHashIntegridad();
+      const id_generado = VotosModel.generarIdUnico();
 
-            const queries = [
-                {
-                    query: `
+      const estado_inicial = tipo === 'Observado' ? 'Emitido Observado' : 'Emitido';
+
+      const queries = [
+        {
+          query: `
             INSERT INTO Voto (
               hora_emision, 
               hash_integridad, 
@@ -33,18 +35,10 @@ class VotosModel {
               fk_circuito_nro
             ) VALUES (?, ?, ?, ?, ?, ?)
           `,
-                    params: [
-                        hora_emision,
-                        hash_integridad,
-                        estado_inicial,
-                        tipo,
-                        circuito_direccion,
-                        circuito_numero
-                    ]
-                },
-                // Insertar en tabla Vota
-                {
-                    query: `
+          params: [hora_emision, hash_integridad, estado_inicial, tipo, circuito_direccion, circuito_numero],
+        },
+        {
+          query: `
             INSERT INTO Vota (
               fk_formulam_eleccion_id, 
               fk_formulam_nro_mesa, 
@@ -53,80 +47,79 @@ class VotosModel {
               fecha_hora
             ) VALUES (?, ?, ?, ?, ?)
           `,
-                    params: [
-                        eleccion_id,
-                        mesa_numero,
-                        ciudadano_credencial,
-                        id_generado,
-                        hora_emision
-                    ]
-                }
-            ];
+          params: [eleccion_id, mesa_numero, ciudadano_credencial, id_generado, hora_emision],
+        },
+      ];
 
-            // Ejecutar transacción
-            const results = await executeTransaction(queries);
-            const votoId = results[0].insertId;
+      // Ejecutar transacción
+      const results = await executeTransaction(queries);
+      const votoId = results[0].insertId;
 
-            // Si hay papeletas, asociarlas al voto
-            if (papeletas.length > 0) {
-                const papeletasQueries = papeletas.map(papeletaId => ({
-                    query: `INSERT INTO Voto_Papeleta (fk_voto_id, fk_papeleta_id) VALUES (?, ?)`,
-                    params: [votoId, papeletaId]
-                }));
+      // Si hay papeletas, asociarlas al voto
+      if (papeletas.length > 0) {
+        const papeletasQueries = papeletas.map((papeleta) => {
+          const papeletaId = typeof papeleta === 'object' ? papeleta.papeleta_id : papeleta;
+          return {
+            query: `INSERT INTO Voto_Papeleta (fk_voto_id, fk_papeleta_id) VALUES (?, ?)`,
+            params: [votoId, papeletaId],
+          };
+        });
 
-                await executeTransaction(papeletasQueries);
-            }
+        await executeTransaction(papeletasQueries);
+      }
 
-            // Si es un voto observado, crear registro en tabla Observado
-            if (tipo === 'Observado') {
-                const observadoQuery = {
-                    query: `INSERT INTO Observado (fk_voto_id) VALUES (?)`,
-                    params: [votoId]
-                };
-                await executeTransaction([observadoQuery]);
-            }
+      // Si es un voto observado, crear registro en tabla Observado
+      if (tipo === 'Observado') {
+        const observadoQuery = {
+          query: `INSERT INTO Observado (fk_voto_id) VALUES (?)`,
+          params: [votoId],
+        };
+        await executeTransaction([observadoQuery]);
+      }
 
-            return {
-                votoId,
-                hash_integridad,
-                id_generado,
-                estado: estado_inicial
-            };
-        } catch (error) {
-            mysqlLogger.error('Error enviando voto:', error);
-            throw error;
-        }
+      return {
+        votoId,
+        hash_integridad,
+        id_generado,
+        estado: estado_inicial,
+      };
+    } catch (error) {
+      mysqlLogger.error('Error enviando voto:', error);
+      throw error;
     }
+  }
 
-    static async validarVoto(votoData) {
-        try {
-            const { ciudadano_credencial, eleccion_id, circuito_direccion, circuito_numero } = votoData;
+  static async validarVoto(votoData) {
+    try {
+      const { ciudadano_credencial, eleccion_id, circuito_direccion, circuito_numero } = votoData;
 
-            const yaVoto = await VotosModel.verificarYaVoto(ciudadano_credencial, eleccion_id);
-            if (yaVoto) {
-                return { valido: false, mensaje: 'El ciudadano ya ha votado en esta elección' };
-            }
+      const mesa_numero = await VotosModel.getNroMesaPorCircuitoYEleccion(circuito_direccion, circuito_numero, eleccion_id);
 
-            const eleccionActiva = await VotosModel.verificarEleccionActiva(eleccion_id);
-            if (!eleccionActiva) {
-                return { valido: false, mensaje: 'La elección no está activa' };
-            }
+      const yaVoto = await VotosModel.verificarYaVoto(ciudadano_credencial, eleccion_id);
+      if (yaVoto) {
+        return { valido: false, mensaje: 'El ciudadano ya ha votado en esta elección' };
+      }
 
-            const circuitoValido = await VotosModel.verificarCircuitoCiudadano(ciudadano_credencial, eleccion_id, circuito_direccion, circuito_numero);
-            if (!circuitoValido) {
-                return { valido: false, mensaje: 'El circuito no corresponde al ciudadano' };
-            }
+      const eleccionActiva = await VotosModel.verificarEleccionActiva(eleccion_id);
+      if (!eleccionActiva) {
+        return { valido: false, mensaje: 'La elección no está activa' };
+      }
+      // Validar que la mesa esté abierta
+      const mesaAbierta = await CircuitosModel.isMesaAbierta(eleccion_id, mesa_numero);
+      if (!mesaAbierta) {
+        return { valido: false, mensaje: 'La mesa de votación no está abierta' };
+      }
 
-            return { valido: true, mensaje: 'Voto válido' };
-        } catch (error) {
-            mysqlLogger.error('Error validando voto:', error);
-            throw error;
-        }
+      return { valido: true, mensaje: 'Voto válido' };
+    } catch (error) {
+      mysqlLogger.error('Error validando voto:', error);
+      throw error;
     }
+  }
 
-    static async obtenerEstadoVotacion(idEleccion) {
-        try {
-            const query = `
+  static async obtenerEstadoVotacion(idEleccion) {
+    try {
+      const query = `
         SELECT 
           e.id,
           e.nombre,
@@ -146,21 +139,18 @@ class VotosModel {
         GROUP BY e.id, e.nombre, e.fecha_hora_inicio, e.fecha_hora_fin, e.tipo
       `;
 
-            const result = await executeQuery(query, [idEleccion]);
-            return result[0] || null;
-        } catch (error) {
-            mysqlLogger.error('Error obteniendo estado de votación:', error);
-            throw error;
-        }
+      const result = await executeQuery(query, [idEleccion]);
+      return result[0] || null;
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo estado de votación:', error);
+      throw error;
     }
+  }
 
   static async aprobarVoto(idVoto, credencialIntegrante) {
     try {
       // Verificar que el voto existe y está en estado observado
-      const voto = await executeQuery(
-        'SELECT estado_actual FROM Voto WHERE id = ?',
-        [idVoto]
-      );
+      const voto = await executeQuery('SELECT estado_actual FROM Voto WHERE id = ?', [idVoto]);
 
       if (!voto || voto.length === 0) {
         throw new Error('Voto no encontrado');
@@ -173,7 +163,7 @@ class VotosModel {
       const queries = [
         {
           query: `UPDATE Voto SET estado_actual = 'Aprobado Presidente Mesa' WHERE id = ?`,
-          params: [idVoto]
+          params: [idVoto],
         },
         {
           query: `
@@ -181,8 +171,8 @@ class VotosModel {
             SET hora_aprobado = NOW(), fk_integrantemesa_nro_credencial = ? 
             WHERE fk_voto_id = ?
           `,
-          params: [credencialIntegrante, idVoto]
-        }
+          params: [credencialIntegrante, idVoto],
+        },
       ];
 
       await executeTransaction(queries);
@@ -193,9 +183,9 @@ class VotosModel {
     }
   }
 
-    static async obtenerVotosPorCircuito(direccionCircuito, numeroCircuito) {
-        try {
-            const query = `
+  static async obtenerVotosPorCircuito(direccionCircuito, numeroCircuito) {
+    try {
+      const query = `
         SELECT 
           v.id,
           v.hora_emision,
@@ -222,47 +212,47 @@ class VotosModel {
         ORDER BY v.hora_emision DESC
       `;
 
-            const results = await executeQuery(query, [direccionCircuito, numeroCircuito]);
-            return results;
-        } catch (error) {
-            mysqlLogger.error('Error obteniendo votos por circuito:', error);
-            throw error;
-        }
+      const results = await executeQuery(query, [direccionCircuito, numeroCircuito]);
+      return results;
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo votos por circuito:', error);
+      throw error;
     }
+  }
 
-    static async verificarYaVoto(credencial, eleccionId) {
-        try {
-            const query = `
+  static async verificarYaVoto(credencial, eleccionId) {
+    try {
+      const query = `
         SELECT COUNT(*) as count 
         FROM Vota 
         WHERE fk_ciudadano_nro_credencial = ? AND fk_formulam_eleccion_id = ?
       `;
-            const result = await executeQuery(query, [credencial, eleccionId]);
-            return result[0].count > 0;
-        } catch (error) {
-            mysqlLogger.error('Error verificando si ya votó:', error);
-            throw error;
-        }
+      const result = await executeQuery(query, [credencial, eleccionId]);
+      return result[0].count > 0;
+    } catch (error) {
+      mysqlLogger.error('Error verificando si ya votó:', error);
+      throw error;
     }
+  }
 
-    static async verificarEleccionActiva(eleccionId) {
-        try {
-            const query = `
+  static async verificarEleccionActiva(eleccionId) {
+    try {
+      const query = `
         SELECT COUNT(*) as count 
         FROM Eleccion 
         WHERE id = ? AND NOW() BETWEEN fecha_hora_inicio AND fecha_hora_fin
       `;
-            const result = await executeQuery(query, [eleccionId]);
-            return result[0].count > 0;
-        } catch (error) {
-            mysqlLogger.error('Error verificando elección activa:', error);
-            throw error;
-        }
+      const result = await executeQuery(query, [eleccionId]);
+      return result[0].count > 0;
+    } catch (error) {
+      mysqlLogger.error('Error verificando elección activa:', error);
+      throw error;
     }
+  }
 
-    static async verificarCircuitoCiudadano(credencial, eleccionId, direccion, numero) {
-        try {
-            const query = `
+  static async verificarCircuitoCiudadano(credencial, eleccionId, direccion, numero) {
+    try {
+      const query = `
         SELECT COUNT(*) as count 
         FROM Ciudadano_Circuito_Eleccion 
         WHERE fk_ciudadano_nro_credencial = ? 
@@ -270,21 +260,39 @@ class VotosModel {
           AND fk_circuito_establecimiento_direccion = ? 
           AND fk_circuito_nro = ?
       `;
-            const result = await executeQuery(query, [credencial, eleccionId, direccion, numero]);
-            return result[0].count > 0;
-        } catch (error) {
-            mysqlLogger.error('Error verificando circuito del ciudadano:', error);
-            throw error;
-        }
+      const result = await executeQuery(query, [credencial, eleccionId, direccion, numero]);
+      return result[0].count > 0;
+    } catch (error) {
+      mysqlLogger.error('Error verificando circuito del ciudadano:', error);
+      throw error;
     }
+  }
 
-    static generarHashIntegridad() {
-        return crypto.randomBytes(32).toString('hex');
+  static async getNroMesaPorCircuitoYEleccion(direccion, numero, eleccionId) {
+    try {
+      const query = `
+        SELECT fm.nro_mesa 
+        FROM FormulaMesa fm
+        JOIN Eleccion e ON fm.fk_eleccion_id = e.id
+        WHERE fm.fk_circuito_establecimiento_direccion = ? 
+          AND fm.fk_circuito_nro = ? 
+          AND e.id = ?
+      `;
+      const result = await executeQuery(query, [direccion, numero, eleccionId]);
+      return result[0] ? result[0].nro_mesa : null;
+    } catch (error) {
+      mysqlLogger.error('Error obteniendo número de mesa por circuito y elección:', error);
+      throw error;
     }
+  }
 
-    static generarIdUnico() {
-        return crypto.randomBytes(16).toString('hex') + '-' + Date.now();
-    }
+  static generarHashIntegridad() {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  static generarIdUnico() {
+    return crypto.randomBytes(16).toString('hex') + '-' + Date.now();
+  }
 }
 
 module.exports = VotosModel;
