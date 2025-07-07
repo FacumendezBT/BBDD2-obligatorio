@@ -6,7 +6,21 @@ class VotosController {
     try {
       const votoData = req.body;
 
-      const validacion = await VotosModel.validarVoto(votoData);
+      // Extraer los IDs de las elecciones del objeto papeletas_por_eleccion
+      const eleccionesIds = Object.keys(votoData.papeletas_por_eleccion || {}).map((id) => parseInt(id));
+
+      if (eleccionesIds.length === 0) {
+        throw new Error('Debe haber al menos una elección para votar');
+      }
+
+      // Validar todas las elecciones
+      const validacion = await VotosModel.validarVoto({
+        ciudadano_credencial: votoData.ciudadano_credencial,
+        elecciones_ids: eleccionesIds,
+        circuito_direccion: votoData.circuito_direccion,
+        circuito_numero: votoData.circuito_numero,
+      });
+
       if (!validacion.valido) {
         throw new Error(validacion.mensaje);
       }
@@ -14,42 +28,47 @@ class VotosController {
       const resultado = await VotosModel.enviarVoto(votoData);
 
       appLogger.info('Voto enviado exitosamente', {
-        votoId: resultado.votoId,
+        transaccionId: resultado.transaccion_id,
         ciudadano: votoData.ciudadano_credencial,
-        eleccion: votoData.eleccion_id,
+        elecciones: eleccionesIds,
+        totalElecciones: resultado.total_elecciones,
       });
 
       res.status(201).json({
-        votoId: resultado.votoId,
-        hash_integridad: resultado.hash_integridad,
-        id_generado: resultado.id_generado,
-        estado: resultado.estado,
+        transaccion_id: resultado.transaccion_id,
+        votos: resultado.votos,
+        total_elecciones: resultado.total_elecciones,
+        mensaje: `Voto registrado exitosamente para ${resultado.total_elecciones} elección(es)`,
       });
     } catch (error) {
       appLogger.warn('Error enviando voto', {
         error: error.message,
         ciudadano: req.body.ciudadano_credencial,
-        eleccion: req.body.eleccion_id,
+        elecciones: req.body.papeletas_por_eleccion ? Object.keys(req.body.papeletas_por_eleccion) : [],
         ip: req.ip,
         userAgent: req.get('User-Agent'),
       });
 
-      switch (error.message) {
-        case 'El ciudadano ya ha votado en esta elección':
+      switch (true) {
+        case error.message.includes('ya ha votado en esta elección'):
           return res.status(400).json({
-            message: 'El ciudadano ya ha votado en esta elección',
+            message: error.message,
           });
-        case 'La elección no está activa':
+        case error.message.includes('no está activa'):
           return res.status(400).json({
-            message: 'La elección no está activa',
+            message: error.message,
           });
-        case 'El circuito no corresponde al ciudadano':
+        case error.message.includes('no corresponde al ciudadano'):
           return res.status(400).json({
-            message: 'El circuito no corresponde al ciudadano',
+            message: error.message,
           });
-        case 'La mesa de votación no está abierta':
+        case error.message.includes('no está abierta'):
           return res.status(400).json({
-            message: 'La mesa de votación no está abierta',
+            message: error.message,
+          });
+        case error.message.includes('Debe haber al menos una elección'):
+          return res.status(400).json({
+            message: error.message,
           });
         default:
           return res.status(500).json({
@@ -77,27 +96,27 @@ class VotosController {
       appLogger.warn('Error validando voto', {
         error: error.message,
         ciudadano: req.body.ciudadano_credencial,
-        eleccion: req.body.eleccion_id,
+        elecciones: req.body.elecciones_ids,
         ip: req.ip,
         userAgent: req.get('User-Agent'),
       });
 
-      switch (error.message) {
-        case 'El ciudadano ya ha votado en esta elección':
+      switch (true) {
+        case error.message.includes('ya ha votado en esta elección'):
           return res.status(400).json({
-            message: 'El ciudadano ya ha votado en esta elección',
+            message: error.message,
           });
-        case 'La elección no está activa':
+        case error.message.includes('no está activa'):
           return res.status(400).json({
-            message: 'La elección no está activa',
+            message: error.message,
           });
-        case 'El circuito no corresponde al ciudadano':
+        case error.message.includes('no corresponde al ciudadano'):
           return res.status(400).json({
-            message: 'El circuito no corresponde al ciudadano',
+            message: error.message,
           });
-        case 'La mesa de votación no está abierta':
+        case error.message.includes('no está abierta'):
           return res.status(400).json({
-            message: 'La mesa de votación no está abierta',
+            message: error.message,
           });
         default:
           return res.status(500).json({

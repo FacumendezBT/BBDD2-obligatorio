@@ -2,24 +2,26 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  selectVotes, 
-  selectIsSubmitting, 
-  selectSubmitError, 
+import {
+  selectVotes,
+  selectIsSubmitting,
+  selectSubmitError,
   selectSubmitSuccess,
   enviarVotoCompleto,
   prepararVotoCompleto,
   clearSubmitError,
-  resetVoting 
+  resetVoting,
 } from '@/store/voting-slice';
-import { selectUser } from '@/store/auth-slice';
+import { selectUser, logout } from '@/store/auth-slice';
 import { selectTotem } from '@/store/totem-slice';
 import { selectEleccionesActivas } from '@/store/elecciones-slice';
 import { toast } from 'sonner';
 import { LucideCheck, LucideX, LucideLoader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function VoteSubmission() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const votes = useAppSelector(selectVotes);
   const isSubmitting = useAppSelector(selectIsSubmitting);
   const submitError = useAppSelector(selectSubmitError);
@@ -30,41 +32,56 @@ export default function VoteSubmission() {
 
   const handleSubmitVotes = async () => {
     try {
-      dispatch(prepararVotoCompleto({
-        ciudadano: {
-          credencial: user.credencial,
-          tipo: user.tipo
-        },
-        circuito: {
-          direccion: totem.direccionCircuito,
-          numero: totem.nroCircuito
-        },
-      }));
+      dispatch(
+        prepararVotoCompleto({
+          ciudadano: {
+            credencial: user.credencial,
+            tipo: user.tipo,
+          },
+          circuito: {
+            direccion: totem.direccionCircuito,
+            numero: totem.nroCircuito,
+          },
+        })
+      );
 
-      // Submit votes for each election
-      for (const vote of votes) {
-        const voteData = {
-          ciudadano_credencial: user.credencial,
-          eleccion_id: vote.eleccion_id,
-          circuito_direccion: totem.direccionCircuito,
-          circuito_numero: totem.nroCircuito,
-          tipo: user.tipo === 'observado' ? 'Observado' : 'Normal',
-          papeletas: vote.lista_seleccionada.nro_lista ? 
-            [{ papeleta_id: vote.lista_seleccionada.id, nro_lista: vote.lista_seleccionada.nro_lista }] :
-            [{ papeleta_id: vote.lista_seleccionada.id, es_si: vote.lista_seleccionada.es_si }]
-        };
+      const papeletasPorEleccion = {};
 
-        await dispatch(enviarVotoCompleto(voteData)).unwrap();
-      }
+      votes.forEach((vote) => {
+        if (!papeletasPorEleccion[vote.eleccion_id]) {
+          papeletasPorEleccion[vote.eleccion_id] = [];
+        }
 
-      toast.success('¡Voto enviado exitosamente!');
-      
-      // Reset voting state after successful submission
+        if (vote.lista_seleccionada.nro_lista) {
+          papeletasPorEleccion[vote.eleccion_id].push({
+            papeleta_id: vote.lista_seleccionada.id,
+            nro_lista: vote.lista_seleccionada.nro_lista,
+          });
+        } else {
+          papeletasPorEleccion[vote.eleccion_id].push({
+            papeleta_id: vote.lista_seleccionada.id,
+            es_si: vote.lista_seleccionada.es_si,
+          });
+        }
+      });
+
+      const voteData = {
+        ciudadano_credencial: user.credencial,
+        circuito_direccion: totem.direccionCircuito,
+        circuito_numero: totem.nroCircuito,
+        tipo: user.tipo === 'observado' ? 'Observado' : 'Normal',
+        papeletas_por_eleccion: papeletasPorEleccion,
+      };
+
+      const result = await dispatch(enviarVotoCompleto(voteData)).unwrap();
+
+      toast.success(`¡Voto enviado exitosamente para ${result.total_elecciones} elección(es)!`);
+
       setTimeout(() => {
         dispatch(resetVoting());
-        // You might want to redirect to a success page or logout here
+        dispatch(logout());
+        navigate('/votante');
       }, 2000);
-      
     } catch (error) {
       console.error('Error submitting votes:', error);
       toast.error('Error al enviar el voto. Intente nuevamente.');
@@ -75,17 +92,18 @@ export default function VoteSubmission() {
     dispatch(clearSubmitError());
   };
 
-  // Transform vote data for display
   const getVoteDisplayData = (vote) => {
-    const election = eleccionesActivas.find(e => e.id === vote.eleccion_id);
+    const election = eleccionesActivas.find((e) => e.id === vote.eleccion_id);
     const lista = vote.lista_seleccionada;
-    
+
     return {
       eleccionNombre: election?.nombre || 'Elección desconocida',
       eleccionTipo: election?.tipo || '',
-      votoTexto: lista.nro_lista ? 
-        `Lista ${lista.nro_lista} - ${lista.nombre}` : 
-        `${lista.nombre} (${lista.es_si ? 'SÍ' : 'NO'})`
+      votoTexto: lista.nro_lista
+        ? `Lista ${lista.nro_lista} - ${lista.nombre}`
+        : election?.tipo === 'Plebiscito'
+        ? `${lista.nombre} (${lista.es_si ? 'SÍ' : 'NO'})`
+        : lista.nombre,
     };
   };
 
@@ -97,11 +115,10 @@ export default function VoteSubmission() {
         </div>
         <h2 className="text-2xl font-semibold text-white mb-2">¡Voto Enviado Exitosamente!</h2>
         <p className="text-white/90 mb-4 max-w-[400px] text-center">
-          Su voto ha sido registrado correctamente. Gracias por participar en el proceso democrático.
+          Su voto ha sido registrado correctamente para {votes.length} elección(es). Gracias por participar en el proceso
+          democrático.
         </p>
-        <div className="text-white/70 text-sm">
-          Puede cerrar esta ventana o será redirigido automáticamente.
-        </div>
+        <div className="text-white/70 text-sm">Puede cerrar esta ventana o será redirigido automáticamente.</div>
       </div>
     );
   }
@@ -109,12 +126,8 @@ export default function VoteSubmission() {
   return (
     <div className="space-y-6 flex-1 w-full flex flex-col">
       <div className="text-center mb-6">
-        <h2 className="text-white text-2xl font-semibold mb-2">
-          Confirmar Voto
-        </h2>
-        <p className="text-white/70">
-          Revise sus selecciones antes de enviar el voto
-        </p>
+        <h2 className="text-white text-2xl font-semibold mb-2">Confirmar Voto</h2>
+        <p className="text-white/70">Revise sus selecciones antes de enviar el voto</p>
       </div>
 
       <Card className="bg-white/95 backdrop-blur-sm">
@@ -149,7 +162,7 @@ export default function VoteSubmission() {
               <h4 className="font-medium text-red-900">Error al enviar el voto</h4>
               <p className="text-sm text-red-700">{submitError.message || 'Ocurrió un error inesperado'}</p>
             </div>
-            <Button 
+            <Button
               onClick={handleClearError}
               variant="outline"
               size="sm"
@@ -165,7 +178,7 @@ export default function VoteSubmission() {
         <Button
           onClick={handleSubmitVotes}
           disabled={isSubmitting}
-          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 font-semibold"
+          className="bg-gradient-to-r from-[#2E59AEFF] to-[#395CA2FF] hover:bg-gradient-to-r hover:from-[#2E59AEFF] hover:to-[#395CA2FF] text-white px-8 py-3 font-semibold"
         >
           {isSubmitting ? (
             <>

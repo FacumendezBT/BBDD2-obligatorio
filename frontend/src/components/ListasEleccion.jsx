@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
+import {
   cargarListasEleccion,
   selectEleccionSeleccionada,
   selectListasEleccion,
@@ -9,15 +9,10 @@ import {
   selectEleccionesError,
   selectEleccionesActivas,
   selectCurrentElectionIndex,
-  nextElection
+  nextElection,
 } from '@/store/elecciones-slice';
-import { 
-  registrarVoto, 
-  completarVotacion,
-  selectVotes 
-} from '@/store/voting-slice';
+import { registrarVoto, completarVotacion, selectVotes } from '@/store/voting-slice';
 import CandidateCard from './CandidateCard';
-import { toast } from 'sonner';
 import { LucideTriangleAlert } from 'lucide-react';
 
 export default function ListasEleccion() {
@@ -29,7 +24,7 @@ export default function ListasEleccion() {
   const isLoading = useAppSelector(selectEleccionesLoading);
   const error = useAppSelector(selectEleccionesError);
   const votes = useAppSelector(selectVotes);
-  const hasVotedForCurrentElection = votes.some(vote => vote.eleccion_id === eleccionSeleccionada?.id);
+  const hasVotedForCurrentElection = votes.some((vote) => vote.eleccion_id === eleccionSeleccionada?.id);
 
   useEffect(() => {
     if (eleccionSeleccionada) {
@@ -38,16 +33,12 @@ export default function ListasEleccion() {
   }, [dispatch, eleccionSeleccionada]);
 
   const handleVotar = (lista) => {
-    dispatch(registrarVoto({
-      eleccionId: eleccionSeleccionada.id,
-      lista: lista
-    }));
-
-    if (lista.nro_lista) {
-      toast.success(`Voto registrado para la Lista ${lista.nro_lista} - ${lista.partido_nombre}`);
-    } else {
-      toast.success(`Voto registrado: ${lista.descripcion}`);
-    }
+    dispatch(
+      registrarVoto({
+        eleccionId: eleccionSeleccionada.id,
+        lista: lista,
+      })
+    );
 
     if (currentElectionIndex < eleccionesActivas.length - 1) {
       dispatch(nextElection());
@@ -69,13 +60,15 @@ export default function ListasEleccion() {
         partido: lista.partido_nombre,
         descripcion: lista.papeleta_descripcion,
         candidato_principal: lista.candidato_nombre,
-        candidatos: lista.participantes ? lista.participantes.map(p => ({
-          nombre: p.participante_nombre,
-          cargo: p.organo_candidato,
-          credencial: p.participante_credencial,
-          orden: p.participante_orden
-        })) : [],
-        departamento: lista.departamento_nombre
+        candidatos: lista.participantes
+          ? lista.participantes.map((p) => ({
+              nombre: p.participante_nombre,
+              cargo: p.organo_candidato,
+              credencial: p.participante_credencial,
+              orden: p.participante_orden,
+            }))
+          : [],
+        departamento: lista.departamento_nombre,
       };
     } else {
       return {
@@ -84,7 +77,7 @@ export default function ListasEleccion() {
         nombre: lista.es_si ? 'SÍ' : 'NO',
         descripcion: lista.descripcion,
         color: lista.color,
-        es_si: lista.es_si
+        es_si: lista.es_si,
       };
     }
   };
@@ -109,7 +102,9 @@ export default function ListasEleccion() {
           <LucideTriangleAlert className="w-16 h-16 mx-auto" />
         </div>
         <h2 className="text-xl font-semibold text-white mb-2">Error al cargar</h2>
-        <p className="text-white/90 mb-4 max-w-[400px] text-center">No se pudieron cargar las listas electorales, favor de contactar con un miembro de mesa.</p>
+        <p className="text-white/90 mb-4 max-w-[400px] text-center">
+          No se pudieron cargar las listas electorales, favor de contactar con un miembro de mesa.
+        </p>
       </div>
     );
   }
@@ -118,14 +113,12 @@ export default function ListasEleccion() {
     <div className="space-y-6 flex-1 w-full flex flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-white text-2xl font-semibold mb-2">
-            {eleccionSeleccionada?.nombre}
-          </h2>
+          <h2 className="text-white text-2xl font-semibold mb-2">{eleccionSeleccionada?.nombre}</h2>
           <p className="text-white/70">Tipo de Elección: {eleccionSeleccionada?.tipo}</p>
-          <p className="text-white/70">Elección {currentElectionIndex + 1} de {eleccionesActivas.length}</p>
-          {hasVotedForCurrentElection && (
-            <p className="text-green-400 font-semibold">✓ Ya has votado en esta elección</p>
-          )}
+          <p className="text-white/70">
+            Elección {currentElectionIndex + 1} de {eleccionesActivas.length}
+          </p>
+          {hasVotedForCurrentElection && <p className="text-green-400 font-semibold">✓ Ya has votado en esta elección</p>}
         </div>
       </div>
       {listas.length === 0 ? (
@@ -135,12 +128,7 @@ export default function ListasEleccion() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {transformedListas.map((lista) => (
-            <CandidateCard 
-              key={lista.id || lista.numero} 
-              lista={lista} 
-              onVotar={handleVotar}
-              isPresidential={isPres}
-            />
+            <CandidateCard key={lista.id || lista.numero} lista={lista} onVotar={handleVotar} isPresidential={isPres} />
           ))}
         </div>
       )}

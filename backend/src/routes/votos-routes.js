@@ -8,10 +8,9 @@ const router = express.Router();
 
 const validacionEnviarVoto = [
   body('ciudadano_credencial').notEmpty().withMessage('Credencial del ciudadano es requerida'),
-  body('eleccion_id').isInt({ min: 1 }).withMessage('ID de elección debe ser un número entero válido'),
   body('circuito_direccion').notEmpty().withMessage('Dirección del circuito es requerida'),
   body('circuito_numero').notEmpty().withMessage('Número del circuito es requerido'),
-  body('papeletas').optional().isArray().withMessage('Papeletas debe ser un array'),
+  body('papeletas_por_eleccion').isObject().withMessage('Papeletas por elección debe ser un objeto'),
   body('tipo')
     .optional()
     .isIn(['Normal', 'Observado', 'Anulado', 'Observado Anulado', 'Blanco'])
@@ -20,9 +19,10 @@ const validacionEnviarVoto = [
 
 const validacionValidarVoto = [
   body('ciudadano_credencial').notEmpty().withMessage('Credencial del ciudadano es requerida'),
-  body('eleccion_id').isInt({ min: 1 }).withMessage('ID de elección debe ser un número entero válido'),
   body('circuito_direccion').notEmpty().withMessage('Dirección del circuito es requerida'),
   body('circuito_numero').notEmpty().withMessage('Número del circuito es requerido'),
+  body('elecciones_ids').isArray().withMessage('IDs de elecciones debe ser un array'),
+  body('elecciones_ids.*').isInt({ min: 1 }).withMessage('Cada ID de elección debe ser un número entero válido'),
 ];
 
 const validacionEstadoVotacion = [

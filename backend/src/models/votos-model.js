@@ -10,78 +10,118 @@ class VotosModel {
         ciudadano_credencial,
         circuito_direccion,
         circuito_numero,
-        eleccion_id,
-        papeletas = [],
+        papeletas_por_eleccion,
         tipo = 'Normal',
         hora_emision = new Date(),
       } = votoData;
 
-      const mesa_numero = await VotosModel.getNroMesaPorCircuitoYEleccion(circuito_direccion, circuito_numero, eleccion_id);
-
-      const hash_integridad = VotosModel.generarHashIntegridad();
-      const id_generado = VotosModel.generarIdUnico();
-
-      const estado_inicial = tipo === 'Observado' ? 'Emitido Observado' : 'Emitido';
-
-      const queries = [
-        {
-          query: `
-            INSERT INTO Voto (
-              hora_emision, 
-              hash_integridad, 
-              estado_actual, 
-              tipo, 
-              fk_circuito_establecimiento_direccion, 
-              fk_circuito_nro
-            ) VALUES (?, ?, ?, ?, ?, ?)
-          `,
-          params: [hora_emision, hash_integridad, estado_inicial, tipo, circuito_direccion, circuito_numero],
-        },
-        {
-          query: `
-            INSERT INTO Vota (
-              fk_formulam_eleccion_id, 
-              fk_formulam_nro_mesa, 
-              fk_ciudadano_nro_credencial, 
-              id_generado, 
-              fecha_hora
-            ) VALUES (?, ?, ?, ?, ?)
-          `,
-          params: [eleccion_id, mesa_numero, ciudadano_credencial, id_generado, hora_emision],
-        },
-      ];
-
-      // Ejecutar transacción
-      const results = await executeTransaction(queries);
-      const votoId = results[0].insertId;
-
-      // Si hay papeletas, asociarlas al voto
-      if (papeletas.length > 0) {
-        const papeletasQueries = papeletas.map((papeleta) => {
-          const papeletaId = typeof papeleta === 'object' ? papeleta.papeleta_id : papeleta;
-          return {
-            query: `INSERT INTO Voto_Papeleta (fk_voto_id, fk_papeleta_id) VALUES (?, ?)`,
-            params: [votoId, papeletaId],
-          };
-        });
-
-        await executeTransaction(papeletasQueries);
+      // Validar que tenemos al menos una elección
+      if (!papeletas_por_eleccion || Object.keys(papeletas_por_eleccion).length === 0) {
+        throw new Error('Debe haber al menos una elección para votar');
       }
 
-      // Si es un voto observado, crear registro en tabla Observado
-      if (tipo === 'Observado') {
-        const observadoQuery = {
-          query: `INSERT INTO Observado (fk_voto_id) VALUES (?)`,
-          params: [votoId],
-        };
-        await executeTransaction([observadoQuery]);
+      const eleccionesIds = Object.keys(papeletas_por_eleccion);
+      const resultados = [];
+
+      // Generar un ID único para toda la transacción de voto
+      const transaccion_id = VotosModel.generarIdUnico();
+
+      // Procesar cada elección
+      for (const eleccionId of eleccionesIds) {
+        const papeletas = papeletas_por_eleccion[eleccionId];
+
+        // Validar que el ciudadano puede votar en esta elección
+        const validacion = await VotosModel.validarVotoParaEleccion({
+          ciudadano_credencial,
+          eleccion_id: parseInt(eleccionId),
+          circuito_direccion,
+          circuito_numero,
+        });
+
+        if (!validacion.valido) {
+          throw new Error(`Elección ${eleccionId}: ${validacion.mensaje}`);
+        }
+
+        // Obtener el número de mesa para esta elección
+        const mesa_numero = await VotosModel.getNroMesaPorCircuitoYEleccion(
+          circuito_direccion,
+          circuito_numero,
+          parseInt(eleccionId)
+        );
+
+        const hash_integridad = VotosModel.generarHashIntegridad();
+        const id_generado = `${transaccion_id}-${eleccionId}`;
+        const estado_inicial = tipo === 'Observado' ? 'Emitido Observado' : 'Emitido';
+
+        // Queries para esta elección específica
+        const queries = [
+          {
+            query: `
+              INSERT INTO Voto (
+                hora_emision, 
+                hash_integridad, 
+                estado_actual, 
+                tipo, 
+                fk_circuito_establecimiento_direccion, 
+                fk_circuito_nro
+              ) VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            params: [hora_emision, hash_integridad, estado_inicial, tipo, circuito_direccion, circuito_numero],
+          },
+          {
+            query: `
+              INSERT INTO Vota (
+                fk_formulam_eleccion_id, 
+                fk_formulam_nro_mesa, 
+                fk_ciudadano_nro_credencial, 
+                id_generado, 
+                fecha_hora
+              ) VALUES (?, ?, ?, ?, ?)
+            `,
+            params: [parseInt(eleccionId), mesa_numero, ciudadano_credencial, id_generado, hora_emision],
+          },
+        ];
+
+        // Ejecutar transacción para esta elección
+        const results = await executeTransaction(queries);
+        const votoId = results[0].insertId;
+
+        // Asociar papeletas al voto
+        if (papeletas && papeletas.length > 0) {
+          const papeletasQueries = papeletas.map((papeleta) => {
+            const papeletaId = typeof papeleta === 'object' ? papeleta.papeleta_id : papeleta;
+            return {
+              query: `INSERT INTO Voto_Papeleta (fk_voto_id, fk_papeleta_id) VALUES (?, ?)`,
+              params: [votoId, papeletaId],
+            };
+          });
+
+          await executeTransaction(papeletasQueries);
+        }
+
+        // Si es un voto observado, crear registro en tabla Observado
+        if (tipo === 'Observado') {
+          const observadoQuery = {
+            query: `INSERT INTO Observado (fk_voto_id) VALUES (?)`,
+            params: [votoId],
+          };
+          await executeTransaction([observadoQuery]);
+        }
+
+        // Guardar resultado para esta elección
+        resultados.push({
+          eleccion_id: parseInt(eleccionId),
+          voto_id: votoId,
+          hash_integridad,
+          id_generado,
+          estado: estado_inicial,
+        });
       }
 
       return {
-        votoId,
-        hash_integridad,
-        id_generado,
-        estado: estado_inicial,
+        transaccion_id,
+        votos: resultados,
+        total_elecciones: eleccionesIds.length,
       };
     } catch (error) {
       mysqlLogger.error('Error enviando voto:', error);
@@ -90,6 +130,31 @@ class VotosModel {
   }
 
   static async validarVoto(votoData) {
+    try {
+      const { ciudadano_credencial, elecciones_ids, circuito_direccion, circuito_numero } = votoData;
+
+      // Validar cada elección
+      for (const eleccionId of elecciones_ids) {
+        const validacion = await VotosModel.validarVotoParaEleccion({
+          ciudadano_credencial,
+          eleccion_id: eleccionId,
+          circuito_direccion,
+          circuito_numero,
+        });
+
+        if (!validacion.valido) {
+          return { valido: false, mensaje: `Elección ${eleccionId}: ${validacion.mensaje}` };
+        }
+      }
+
+      return { valido: true, mensaje: 'Todas las elecciones son válidas para votar' };
+    } catch (error) {
+      mysqlLogger.error('Error validando voto:', error);
+      throw error;
+    }
+  }
+
+  static async validarVotoParaEleccion(votoData) {
     try {
       const { ciudadano_credencial, eleccion_id, circuito_direccion, circuito_numero } = votoData;
 
@@ -104,6 +169,7 @@ class VotosModel {
       if (!eleccionActiva) {
         return { valido: false, mensaje: 'La elección no está activa' };
       }
+
       // Validar que la mesa esté abierta
       const mesaAbierta = await CircuitosModel.isMesaAbierta(eleccion_id, mesa_numero);
       if (!mesaAbierta) {
@@ -112,7 +178,7 @@ class VotosModel {
 
       return { valido: true, mensaje: 'Voto válido' };
     } catch (error) {
-      mysqlLogger.error('Error validando voto:', error);
+      mysqlLogger.error('Error validando voto para elección:', error);
       throw error;
     }
   }
@@ -291,7 +357,9 @@ class VotosModel {
   }
 
   static generarIdUnico() {
-    return crypto.randomBytes(16).toString('hex') + '-' + Date.now();
+    const timestamp = Date.now();
+    const randomBytes = crypto.randomBytes(8).toString('hex');
+    return `${timestamp}-${randomBytes}`;
   }
 }
 
