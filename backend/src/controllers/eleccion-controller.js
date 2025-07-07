@@ -281,41 +281,6 @@ class EleccionController {
     }
   }
 
-  static async getStatsEleccion(req, res, next) {
-    try {
-      const { electionId } = req.params;
-
-      const election = await EleccionModel.getEleccionById(electionId);
-      if (!election) {
-        throw new Error('Elección no encontrada');
-      }
-
-      // res.status(200).json({
-      //       votosTotales: 0,
-      //       participationRate: 0,
-      //       lastUpdated: new Date().toISOString(),
-      //     });
-    } catch (error) {
-      appLogger.warn('Error obteniendo estadísticas de elección', {
-        error: error.message,
-        electionId: req.params.electionId,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-      });
-
-      switch (error.message) {
-        case 'Elección no encontrada':
-          return res.status(404).json({
-            message: 'Elección no encontrada',
-          });
-        default:
-          return res.status(500).json({
-            message: 'Error interno del servidor',
-          });
-      }
-    }
-  }
-
   static combinarListasConParticipantes(listas, participantes) {
     const participantesPorLista = {};
     

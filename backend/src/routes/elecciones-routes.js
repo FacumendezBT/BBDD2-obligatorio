@@ -35,7 +35,6 @@ router.get('/pasadas', EleccionController.getEleccionesPasadas);
 router.get('/:electionId', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'votante', 'observado']), idEleccionValidacion, validarExpressValidator, EleccionController.getEleccionPorId);
 router.get('/:electionId/estado', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'votante', 'observado']), idEleccionValidacion, validarExpressValidator, EleccionController.checkEstadoEleccion);
 router.get('/:electionId/papeletas', autenticar(['admin', 'presidente', 'secretario', 'vocal', 'votante', 'observado']), idEleccionValidacion, validarExpressValidator, EleccionController.getPapeletasEleccion);
-router.get('/:electionId/estadisticas', autenticar(['admin', 'presidente', 'secretario', 'vocal']), idEleccionValidacion, validarExpressValidator, EleccionController.getStatsEleccion);
 
 router.post('/', autenticar(['admin']), validacionCrearEleccion, validarExpressValidator, EleccionController.crearEleccion);
 

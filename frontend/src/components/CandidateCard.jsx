@@ -12,7 +12,6 @@ export default function CandidateCard({ lista, onVotar, isPresidential = true })
     if (lista.color) {
       return '';
     }
-    return lista.es_si ? 'bg-blue-500' : 'bg-pink-500';
   };
 
   return (
@@ -23,7 +22,7 @@ export default function CandidateCard({ lista, onVotar, isPresidential = true })
         borderColor: lista.color
       } : {}}
     >
-      <div className="p-6">
+      <div className="p-6 flex flex-col justify-between h-full">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
@@ -46,7 +45,7 @@ export default function CandidateCard({ lista, onVotar, isPresidential = true })
             {/* Candidato principal para elecciones presidenciales */}
             {isPresidential && lista.candidato_principal && (
               <div className="mb-3">
-                <h4 className="text-sm font-semibold text-gray-700 mb-1">Candidato Principal:</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-1 pt-1">Candidato Principal:</h4>
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">1</span>
@@ -61,16 +60,18 @@ export default function CandidateCard({ lista, onVotar, isPresidential = true })
             {isPresidential && lista.candidatos && lista.candidatos.length > 0 && (
               <div className="space-y-2 mb-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-1">Otros Candidatos:</h4>
-                <div className="space-y-1">
-                  {lista.candidatos.map((candidato, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{candidato.orden}</span>
-                        <span className="font-medium">{candidato.nombre}</span>
+                <div className="max-h-20 overflow-y-auto border border-gray-200 rounded-md p-2 bg-gray-50">
+                  <div className="space-y-1">
+                    {lista.candidatos.map((candidato, index) => (
+                      <div key={index} className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{candidato.orden}</span>
+                          <span className="font-medium truncate">{candidato.nombre}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{candidato.cargo}</span>
                       </div>
-                      <span className="text-xs text-gray-500">{candidato.cargo}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
