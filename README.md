@@ -92,6 +92,8 @@ RATE_LIMIT_MAX_REQUESTS=100
 CORS_ORIGIN=
 ## Prueba de la Aplicación
 
+**IMPORTANTE: La app solo va a funcionar si se ingresa la ip desde la que se quiere conectar (la IP de la compu desde la que se prueba) en el campo ip_totem de la tabla Circuio en formato: ::ffff:192.168.1.35**
+
 Una vez que la aplicación esté levantada y conectada a la base de datos, puedes usar las siguientes credenciales para realizar pruebas:
 
 * **Votante:**
